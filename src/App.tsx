@@ -16,6 +16,7 @@ import Trips from "./pages/Trips";
 import TripDetail from "./pages/TripDetail";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
+import Portfolio from "./pages/Portfolio";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +46,7 @@ const App = () => (
               <Route path="/trips" element={<Trips />} />
               <Route path="/trips/:tripId" element={<TripDetail />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/portfolio" element={<Portfolio />} />
               <Route path="/profile" element={<Profile />} />
             </Route>
 
