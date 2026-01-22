@@ -19,7 +19,7 @@ import {
 } from 'recharts';
 import { format, parseISO, eachDayOfInterval, differenceInDays } from 'date-fns';
 import { motion } from 'framer-motion';
-import { TrendingUp, PiggyBank, Receipt, Target, ArrowUpRight, ArrowDownRight, Crown } from 'lucide-react';
+import { TrendingUp, Receipt, Target, Crown, Scale } from 'lucide-react';
 
 interface BentoChartsProps {
   expenses: Expense[];
@@ -38,9 +38,10 @@ export function BentoCharts({
 }: BentoChartsProps) {
   const currencySymbol = getCurrencySymbol(currency);
   const totalSpent = expenses.reduce((sum, e) => sum + e.amount, 0);
-  const remaining = totalBudget - totalSpent;
   const percentSpent = totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0;
   const avgPerExpense = expenses.length > 0 ? Math.round(totalSpent / expenses.length) : 0;
+  const tripDuration = differenceInDays(parseISO(endDate), parseISO(startDate)) + 1;
+  const dailyBudgetTarget = Math.round(totalBudget / tripDuration);
 
   // Category breakdown
   const categoryData = useMemo(() => {
@@ -132,17 +133,18 @@ export function BentoCharts({
           </Card>
         </motion.div>
 
-        {/* Remaining */}
+        {/* Daily Budget Target */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-          <Card className={`border-0 ${remaining >= 0 ? 'bg-gradient-to-br from-emerald-500 to-emerald-600' : 'bg-gradient-to-br from-rose-500 to-rose-600'}`}>
+          <Card className="border-0 bg-gradient-to-br from-emerald-500 to-emerald-600">
             <CardContent className="p-4">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-xs font-medium text-white/70">{remaining >= 0 ? 'Remaining' : 'Over Budget'}</p>
-                  <p className="text-2xl font-bold text-white mt-1">{currencySymbol}{Math.abs(remaining).toLocaleString()}</p>
+                  <p className="text-xs font-medium text-white/70">Daily Target</p>
+                  <p className="text-2xl font-bold text-white mt-1">{currencySymbol}{dailyBudgetTarget.toLocaleString()}/day</p>
+                  <p className="text-[10px] text-white/60">{tripDuration} days trip</p>
                 </div>
                 <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center">
-                  {remaining >= 0 ? <ArrowDownRight className="h-4 w-4 text-white" /> : <ArrowUpRight className="h-4 w-4 text-white" />}
+                  <Target className="h-4 w-4 text-white" />
                 </div>
               </div>
             </CardContent>
@@ -168,10 +170,10 @@ export function BentoCharts({
         </motion.div>
       </div>
 
-      {/* Bento Grid - Charts */}
-      <div className="grid gap-3 grid-cols-6 auto-rows-[110px]">
-        {/* Budget Gauge - 2x2 */}
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }} className="col-span-3 lg:col-span-2 row-span-2">
+      {/* Bento Grid - Charts (2 per row) */}
+      <div className="grid gap-3 grid-cols-2 auto-rows-[180px]">
+        {/* Budget Gauge */}
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}>
           <Card className="h-full">
             <CardContent className="p-4 h-full flex flex-col">
               <div className="flex items-center justify-between mb-1">
@@ -197,8 +199,8 @@ export function BentoCharts({
           </Card>
         </motion.div>
 
-        {/* Category Pie - 2x2 */}
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.25 }} className="col-span-3 lg:col-span-2 row-span-2">
+        {/* Category Pie */}
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.25 }}>
           <Card className="h-full">
             <CardContent className="p-4 h-full flex flex-col">
               <p className="text-xs font-semibold mb-2">By Category</p>
@@ -228,8 +230,8 @@ export function BentoCharts({
           </Card>
         </motion.div>
 
-        {/* Spending Trend with Daily Bars - 2x2 */}
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }} className="col-span-6 lg:col-span-2 row-span-2">
+        {/* Spending Trend */}
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}>
           <Card className="h-full">
             <CardContent className="p-4 h-full flex flex-col">
               <div className="flex items-center justify-between mb-2">
@@ -267,8 +269,8 @@ export function BentoCharts({
           </Card>
         </motion.div>
 
-        {/* Top Spending Categories - 3x2 */}
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.35 }} className="col-span-6 lg:col-span-3 row-span-2">
+        {/* Top Spending */}
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.35 }}>
           <Card className="h-full">
             <CardContent className="p-4 h-full flex flex-col">
               <p className="text-xs font-semibold mb-2">Top Spending</p>
@@ -303,20 +305,65 @@ export function BentoCharts({
           </Card>
         </motion.div>
 
-        {/* Daily Budget Info - 3x1 */}
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.4 }} className="col-span-6 lg:col-span-3">
+        {/* Budget vs Expenses */}
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.4 }}>
           <Card className="h-full">
-            <CardContent className="p-4 h-full flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <PiggyBank className="h-5 w-5 text-primary" />
+            <CardContent className="p-4 h-full flex flex-col">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-semibold">Budget vs Expenses</p>
+                <Scale className="h-3.5 w-3.5 text-muted-foreground" />
+              </div>
+              <div className="flex-1">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart 
+                    data={[
+                      { name: 'Budget', value: totalBudget, fill: 'hsl(var(--muted-foreground))' },
+                      { name: 'Spent', value: totalSpent, fill: 'hsl(var(--primary))' },
+                    ]} 
+                    margin={{ top: 10, right: 10, bottom: 10, left: 10 }}
+                  >
+                    <XAxis dataKey="name" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
+                    <YAxis hide />
+                    <Tooltip 
+                      contentStyle={{ fontSize: 11, borderRadius: 8 }}
+                      formatter={(value: number) => [`${currencySymbol}${value.toLocaleString()}`, '']}
+                    />
+                    <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={50}>
+                      {[
+                        { name: 'Budget', value: totalBudget, fill: 'hsl(var(--muted-foreground)/0.3)' },
+                        { name: 'Spent', value: totalSpent, fill: 'hsl(var(--primary))' },
+                      ].map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Trip Summary Stats */}
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.45 }}>
+          <Card className="h-full bg-gradient-to-br from-muted/50 to-muted">
+            <CardContent className="p-4 h-full flex flex-col justify-center gap-4">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-muted-foreground">Daily Budget Target</p>
-                  <p className="text-lg font-bold">{currencySymbol}{Math.round(totalBudget / (differenceInDays(parseISO(endDate), parseISO(startDate)) + 1)).toLocaleString()}/day</p>
+                  <p className="text-[10px] text-muted-foreground">Total Expenses</p>
+                  <p className="text-xl font-bold">{expenses.length}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] text-muted-foreground">Categories Used</p>
+                  <p className="text-xl font-bold">{categoryData.length}</p>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-xs text-muted-foreground">Trip Duration</p>
-                <p className="text-lg font-bold">{differenceInDays(parseISO(endDate), parseISO(startDate)) + 1} days</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] text-muted-foreground">Avg per Day</p>
+                  <p className="text-lg font-semibold">{currencySymbol}{Math.round(totalSpent / tripDuration).toLocaleString()}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] text-muted-foreground">Avg per Expense</p>
+                  <p className="text-lg font-semibold">{currencySymbol}{avgPerExpense.toLocaleString()}</p>
+                </div>
               </div>
             </CardContent>
           </Card>
