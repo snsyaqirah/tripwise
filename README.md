@@ -1,73 +1,100 @@
-# Welcome to your Lovable project
+# TripWise - Travel Planning & Budget Management App
 
-## Project info
+A full-stack travel planning and budget management application that helps you organize trips, track expenses, manage budgets, and share your travel experiences.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Project Structure
 
-## How can I edit this code?
-
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```
+tripwise/
+├── frontend/          # React + TypeScript frontend
+│   ├── src/          # Source code
+│   ├── public/       # Static assets
+│   └── ...           # Configuration files
+├── backend/          # Backend API (to be implemented)
+└── README.md         # This file
 ```
 
-**Edit a file directly in GitHub**
+## 🚀 Getting Started
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Frontend Setup
 
-**Use GitHub Codespaces**
+The frontend is built with React, TypeScript, Vite, and Tailwind CSS.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```bash
+# Navigate to frontend directory
+cd frontend
 
-## What technologies are used for this project?
+# Install dependencies
+npm install
+# or if using bun
+bun install
 
-This project is built with:
+# Start development server
+npm run dev
+# or
+bun run dev
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+The frontend will be available at `http://localhost:5173`
 
-## How can I deploy this project?
+### Backend Setup
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+Backend implementation coming soon...
 
-## Can I connect a custom domain to my Lovable project?
+## 📦 Tech Stack
 
-Yes, you can!
+### Frontend
+- **Framework**: React 18 with TypeScript
+- **Build Tool**: Vite
+- **Styling**: Tailwind CSS
+- **UI Components**: shadcn/ui
+- **State Management**: React Context API
+- **HTTP Client**: Axios
+- **Charts**: Recharts
+- **Testing**: Vitest
+- **Package Manager**: Bun
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### Backend
+- Coming soon...
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## 🎯 Features
+
+- 🗺️ Trip planning and management
+- 💰 Budget tracking and expense management
+- 📊 Visual charts and analytics
+- 💱 Multi-currency support
+- 📝 Destination notes
+- 🌍 Travel portfolio with maps and timeline
+- 🔔 Budget alerts and notifications
+- 📤 Export functionality
+- 🔐 Authentication and protected routes
+- 📱 Responsive design
+
+## 📝 Development
+
+### Frontend Development
+
+See [frontend/README.md](frontend/README.md) for detailed frontend documentation.
+
+### Code Style
+
+- ESLint for code linting
+- TypeScript for type safety
+- Component-based architecture
+- Custom hooks for reusable logic
+
+## 🤝 Contributing
+
+1. Clone the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
+
+## 📄 License
+
+This project is part of the Lovable platform.
+
+## 🔗 Links
+
+- **Repository**: https://github.com/snsyaqirah/tripwise
+- **Lovable Project**: [Your Lovable Project URL]
