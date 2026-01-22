@@ -1,7 +1,6 @@
 import { useTrips } from '@/hooks/useTrips';
-import { getCurrencySymbol, expenseCategories, getCountryByCode } from '@/data/countries';
+import { getCurrencySymbol, getCountryByCode } from '@/data/countries';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import {
@@ -301,39 +300,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </motion.div>
-
-      {/* Carbon Footprint Placeholder */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
-      >
-        <Card className="border-dashed">
-          <CardContent className="flex items-center justify-between p-6">
-            <div>
-              <h3 className="font-display text-lg font-semibold text-muted-foreground">
-                🌱 Carbon Footprint Tracking
-              </h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                Coming soon: Track the environmental impact of your travels
-              </p>
-            </div>
-            <Button variant="outline" disabled>
-              Coming Soon
-            </Button>
-          </CardContent>
-        </Card>
-      </motion.div>
     </div>
   );
 }
-
-/*
- * BONUS / UPGRADE NOTES:
- * - Charts for spending trends over time
- * - Category breakdown pie chart
- * - Currency conversion tracking
- * - Export all data as CSV/PDF
- * - Compare trips feature
- * - Travel insights and recommendations
- */

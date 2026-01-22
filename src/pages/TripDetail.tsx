@@ -6,9 +6,16 @@ import { Expense, CreateExpenseInput } from '@/types';
 import { getCountryByCode, getCurrencySymbol, expenseCategories } from '@/data/countries';
 import { ExpenseList } from '@/components/expenses/ExpenseList';
 import { ExpenseForm } from '@/components/expenses/ExpenseForm';
+import { CurrencyCards } from '@/components/currency/CurrencyCards';
+import { BudgetCharts } from '@/components/charts/BudgetCharts';
+import { BudgetAlerts } from '@/components/alerts/BudgetAlerts';
+import { TripSharing } from '@/components/sharing/TripSharing';
+import { DestinationNotes } from '@/components/notes/DestinationNotes';
+import { ExportMenu } from '@/components/export/ExportMenu';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +35,9 @@ import {
   Wallet,
   TrendingUp,
   Loader2,
+  BarChart3,
+  FileText,
+  Coins,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
@@ -51,6 +61,7 @@ export default function TripDetail() {
   const [editingExpense, setEditingExpense] = useState<Expense | undefined>();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
+  const [dismissedAlerts, setDismissedAlerts] = useState<string[]>([]);
 
   const trip = tripId ? getTripById(tripId) : undefined;
 
@@ -148,6 +159,10 @@ export default function TripDetail() {
     setEditingExpense(undefined);
   };
 
+  const handleDismissAlert = (alertId: string) => {
+    setDismissedAlerts((prev) => [...prev, alertId]);
+  };
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -177,12 +192,25 @@ export default function TripDetail() {
               </span>
             </div>
           </div>
-          <Button onClick={() => setFormOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Expense
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <TripSharing tripId={tripId!} tripName={trip.name} />
+            <ExportMenu trip={trip} expenses={expenses} />
+            <Button onClick={() => setFormOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Expense
+            </Button>
+          </div>
         </div>
       </div>
+
+      {/* Budget Alerts */}
+      <BudgetAlerts
+        expenses={expenses}
+        totalBudget={trip.totalBudget}
+        currency={trip.favoriteCurrency}
+        onDismiss={handleDismissAlert}
+        dismissedAlerts={dismissedAlerts}
+      />
 
       {/* Budget Overview Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -280,99 +308,152 @@ export default function TripDetail() {
         </motion.div>
       </div>
 
-      {/* Category Breakdown */}
-      {Object.keys(categoryTotals).length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-        >
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-display text-lg">
-                Spending by Category
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {expenseCategories.map((cat) => {
-                  const amount = categoryTotals[cat.value as keyof typeof categoryTotals] || 0;
-                  if (amount === 0) return null;
-                  const percentage = (amount / totalSpent) * 100;
+      {/* Currency Cards */}
+      <CurrencyCards
+        favoriteCurrency={trip.favoriteCurrency}
+        tripCurrency={country?.currency}
+      />
 
-                  return (
-                    <div
-                      key={cat.value}
-                      className="flex items-center gap-3 p-3 rounded-lg bg-muted/50"
-                    >
-                      <div
-                        className="flex h-10 w-10 items-center justify-center rounded-lg text-lg"
-                        style={{ backgroundColor: `${cat.color}20` }}
-                      >
-                        {cat.icon}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex justify-between items-center">
-                          <span className="font-medium text-sm">{cat.label}</span>
-                          <span className="font-semibold">
-                            {currencySymbol}
-                            {amount.toLocaleString()}
-                          </span>
-                        </div>
-                        <div className="mt-1 h-1.5 rounded-full bg-muted overflow-hidden">
+      {/* Tabbed Content */}
+      <Tabs defaultValue="expenses" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
+          <TabsTrigger value="expenses" className="gap-2">
+            <FileText className="h-4 w-4 hidden sm:inline" />
+            Expenses
+          </TabsTrigger>
+          <TabsTrigger value="charts" className="gap-2">
+            <BarChart3 className="h-4 w-4 hidden sm:inline" />
+            Charts
+          </TabsTrigger>
+          <TabsTrigger value="categories" className="gap-2">
+            <Coins className="h-4 w-4 hidden sm:inline" />
+            Categories
+          </TabsTrigger>
+          <TabsTrigger value="notes" className="gap-2">
+            <MapPin className="h-4 w-4 hidden sm:inline" />
+            Notes
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="expenses">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="font-display text-lg">Expenses</CardTitle>
+                {expenses.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setFormOpen(true)}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  <ExpenseList
+                    expenses={expenses}
+                    onEdit={handleEditClick}
+                    onDelete={handleDeleteClick}
+                  />
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        </TabsContent>
+
+        <TabsContent value="charts">
+          <BudgetCharts
+            expenses={expenses}
+            totalBudget={trip.totalBudget}
+            currency={trip.favoriteCurrency}
+            startDate={trip.startDate}
+            endDate={trip.endDate}
+          />
+        </TabsContent>
+
+        <TabsContent value="categories">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-display text-lg">
+                  Spending by Category
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {Object.keys(categoryTotals).length > 0 ? (
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {expenseCategories.map((cat) => {
+                      const amount = categoryTotals[cat.value as keyof typeof categoryTotals] || 0;
+                      if (amount === 0) return null;
+                      const percentage = (amount / totalSpent) * 100;
+
+                      return (
+                        <div
+                          key={cat.value}
+                          className="flex items-center gap-3 p-4 rounded-lg bg-muted/50"
+                        >
                           <div
-                            className="h-full rounded-full"
-                            style={{
-                              width: `${percentage}%`,
-                              backgroundColor: cat.color,
-                            }}
-                          />
+                            className="flex h-12 w-12 items-center justify-center rounded-lg text-xl"
+                            style={{ backgroundColor: `${cat.color}20` }}
+                          >
+                            {cat.icon}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex justify-between items-center">
+                              <span className="font-medium">{cat.label}</span>
+                              <span className="font-semibold">
+                                {currencySymbol}
+                                {amount.toLocaleString()}
+                              </span>
+                            </div>
+                            <div className="mt-2 h-2 rounded-full bg-muted overflow-hidden">
+                              <div
+                                className="h-full rounded-full transition-all"
+                                style={{
+                                  width: `${percentage}%`,
+                                  backgroundColor: cat.color,
+                                }}
+                              />
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {percentage.toFixed(1)}% of total
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      )}
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No expenses recorded yet.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        </TabsContent>
 
-      {/* Expense List */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
-      >
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="font-display text-lg">Expenses</CardTitle>
-            {expenses.length > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setFormOpen(true)}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add
-              </Button>
-            )}
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              </div>
-            ) : (
-              <ExpenseList
-                expenses={expenses}
-                onEdit={handleEditClick}
-                onDelete={handleDeleteClick}
-              />
-            )}
-          </CardContent>
-        </Card>
-      </motion.div>
+        <TabsContent value="notes">
+          <DestinationNotes
+            tripId={tripId!}
+            destinationCountry={trip.destinationCountry}
+            destinationName={country?.name || trip.destinationCountry}
+          />
+        </TabsContent>
+      </Tabs>
 
       {/* Expense Form */}
       <ExpenseForm
@@ -409,12 +490,3 @@ export default function TripDetail() {
     </div>
   );
 }
-
-/*
- * BONUS / UPGRADE NOTES:
- * - Carbon footprint tracking placeholder
- * - Destination notes / local advice section
- * - Budget alerts when exceeding category limits
- * - Share trip with other travelers
- * - Export trip report as PDF
- */
