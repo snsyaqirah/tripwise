@@ -1,4 +1,5 @@
 import { useTrips } from '@/hooks/useTrips';
+import { useAuth } from '@/context/AuthContext';
 import { getCurrencySymbol, getCountryByCode } from '@/data/countries';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,7 @@ import { format, differenceInDays, isFuture, isPast } from 'date-fns';
 
 export default function Dashboard() {
   const { trips } = useTrips();
+  const { user } = useAuth();
 
   // Calculate totals across all trips
   const totalBudget = trips.reduce((sum, t) => sum + t.totalBudget, 0);
@@ -52,8 +54,8 @@ export default function Dashboard() {
         </p>
       </div>
 
-      {/* Currency Cards - Favorite currency at the top */}
-      <CurrencyCards favoriteCurrency="MYR" />
+      {/* Currency Cards - Favorite currency from user profile */}
+      <CurrencyCards favoriteCurrency={user?.currency || 'MYR'} />
 
       {/* Quick Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
