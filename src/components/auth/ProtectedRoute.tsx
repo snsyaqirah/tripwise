@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { OnboardingModal } from '@/components/onboarding/OnboardingModal';
 import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
@@ -7,7 +8,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, needsOnboarding, completeOnboarding } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -22,5 +23,10 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <OnboardingModal open={needsOnboarding} onComplete={completeOnboarding} />
+    </>
+  );
 }

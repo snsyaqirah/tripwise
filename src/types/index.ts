@@ -4,6 +4,9 @@ export interface User {
   name: string;
   email: string;
   avatar?: string;
+  country?: string;
+  currency?: string;
+  onboardingCompleted?: boolean;
   createdAt: string;
 }
 
