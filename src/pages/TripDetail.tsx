@@ -4,17 +4,16 @@ import { useTrips } from '@/hooks/useTrips';
 import { useExpenses } from '@/hooks/useExpenses';
 import { Expense, CreateExpenseInput } from '@/types';
 import { getCountryByCode, getCurrencySymbol, expenseCategories } from '@/data/countries';
-import { ExpenseList } from '@/components/expenses/ExpenseList';
+import { ExpenseListWithTotal } from '@/components/expenses/ExpenseListWithTotal';
 import { ExpenseForm } from '@/components/expenses/ExpenseForm';
-import { CurrencyCards } from '@/components/currency/CurrencyCards';
-import { BudgetCharts } from '@/components/charts/BudgetCharts';
+import { TripCurrencyCard } from '@/components/currency/TripCurrencyCard';
+import { BentoCharts } from '@/components/charts/BentoCharts';
 import { BudgetAlerts } from '@/components/alerts/BudgetAlerts';
 import { TripSharing } from '@/components/sharing/TripSharing';
-import { DestinationNotes } from '@/components/notes/DestinationNotes';
+import { EditableDestinationNotes } from '@/components/notes/EditableDestinationNotes';
 import { ExportMenu } from '@/components/export/ExportMenu';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   AlertDialog,
@@ -290,27 +289,27 @@ export default function TripDetail() {
           transition={{ delay: 0.3 }}
         >
           <Card>
-            <CardHeader className="pb-2">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Budget Progress
+                Expenses
               </CardTitle>
+              <FileText className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent className="space-y-2">
-              <Progress
-                value={Math.min(spentPercentage, 100)}
-                className="h-2"
-              />
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {expenses.length}
+              </div>
               <p className="text-xs text-muted-foreground">
-                {expenses.length} expense{expenses.length !== 1 ? 's' : ''} recorded
+                {expenses.length === 1 ? 'expense' : 'expenses'} recorded
               </p>
             </CardContent>
           </Card>
         </motion.div>
       </div>
 
-      {/* Currency Cards */}
-      <CurrencyCards
-        favoriteCurrency={trip.favoriteCurrency}
+      {/* Currency Card */}
+      <TripCurrencyCard
+        userCurrency={trip.favoriteCurrency}
         tripCurrency={country?.currency}
       />
 
@@ -360,8 +359,9 @@ export default function TripDetail() {
                     <Loader2 className="h-6 w-6 animate-spin text-primary" />
                   </div>
                 ) : (
-                  <ExpenseList
+                  <ExpenseListWithTotal
                     expenses={expenses}
+                    currency={trip.favoriteCurrency}
                     onEdit={handleEditClick}
                     onDelete={handleDeleteClick}
                   />
@@ -372,7 +372,7 @@ export default function TripDetail() {
         </TabsContent>
 
         <TabsContent value="charts">
-          <BudgetCharts
+          <BentoCharts
             expenses={expenses}
             totalBudget={trip.totalBudget}
             currency={trip.favoriteCurrency}
@@ -447,7 +447,7 @@ export default function TripDetail() {
         </TabsContent>
 
         <TabsContent value="notes">
-          <DestinationNotes
+          <EditableDestinationNotes
             tripId={tripId!}
             destinationCountry={trip.destinationCountry}
             destinationName={country?.name || trip.destinationCountry}
