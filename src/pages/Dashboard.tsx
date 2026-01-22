@@ -12,6 +12,7 @@ import {
   Plane,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { CurrencyCards } from '@/components/currency/CurrencyCards';
 import { format, differenceInDays, isFuture, isPast } from 'date-fns';
 
 export default function Dashboard() {
@@ -50,6 +51,9 @@ export default function Dashboard() {
           Your travel overview at a glance
         </p>
       </div>
+
+      {/* Currency Cards - Favorite currency at the top */}
+      <CurrencyCards favoriteCurrency="MYR" />
 
       {/* Quick Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
