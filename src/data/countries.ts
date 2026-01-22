@@ -64,6 +64,19 @@ export const currencies = [
   { code: 'SGD', name: 'Singapore Dollar', symbol: 'S$' },
   { code: 'MXN', name: 'Mexican Peso', symbol: '$' },
   { code: 'BRL', name: 'Brazilian Real', symbol: 'R$' },
+  { code: 'MYR', name: 'Malaysian Ringgit', symbol: 'RM' },
+  { code: 'NZD', name: 'New Zealand Dollar', symbol: 'NZ$' },
+  { code: 'HKD', name: 'Hong Kong Dollar', symbol: 'HK$' },
+  { code: 'SEK', name: 'Swedish Krona', symbol: 'kr' },
+  { code: 'NOK', name: 'Norwegian Krone', symbol: 'kr' },
+  { code: 'DKK', name: 'Danish Krone', symbol: 'kr' },
+  { code: 'PLN', name: 'Polish Zloty', symbol: 'zł' },
+  { code: 'PHP', name: 'Philippine Peso', symbol: '₱' },
+  { code: 'IDR', name: 'Indonesian Rupiah', symbol: 'Rp' },
+  { code: 'VND', name: 'Vietnamese Dong', symbol: '₫' },
+  { code: 'AED', name: 'UAE Dirham', symbol: 'د.إ' },
+  { code: 'ZAR', name: 'South African Rand', symbol: 'R' },
+  { code: 'TWD', name: 'Taiwan Dollar', symbol: 'NT$' },
 ];
 
 export const expenseCategories = [
