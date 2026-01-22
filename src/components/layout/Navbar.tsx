@@ -20,6 +20,7 @@ export function Navbar() {
   const navLinks = [
     { href: '/trips', label: 'My Trips' },
     { href: '/dashboard', label: 'Dashboard' },
+    { href: '/portfolio', label: 'Portfolio' },
   ];
 
   const isActive = (path: string) => location.pathname === path;

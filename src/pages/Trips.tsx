@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useTrips } from '@/hooks/useTrips';
 import { Trip, CreateTripInput } from '@/types';
 import { TripCard } from '@/components/trips/TripCard';
 import { TripForm } from '@/components/trips/TripForm';
+import { TripFilters, TripFilterStatus } from '@/components/trips/TripFilters';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -17,6 +18,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Compass, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { isFuture, isPast } from 'date-fns';
 
 export default function Trips() {
   const { trips, isLoading, createTrip, updateTrip, deleteTrip } = useTrips();
@@ -26,6 +28,42 @@ export default function Trips() {
   const [editingTrip, setEditingTrip] = useState<Trip | undefined>();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [tripToDelete, setTripToDelete] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<TripFilterStatus>('all');
+
+  // Categorize trips
+  const categorizedTrips = useMemo(() => {
+    const now = new Date();
+    return {
+      active: trips.filter(t => {
+        const start = new Date(t.startDate);
+        const end = new Date(t.endDate);
+        return start <= now && end >= now;
+      }),
+      upcoming: trips.filter(t => isFuture(new Date(t.startDate))),
+      completed: trips.filter(t => isPast(new Date(t.endDate))),
+    };
+  }, [trips]);
+
+  // Filter trips based on active filter
+  const filteredTrips = useMemo(() => {
+    switch (activeFilter) {
+      case 'active':
+        return categorizedTrips.active;
+      case 'upcoming':
+        return categorizedTrips.upcoming;
+      case 'completed':
+        return categorizedTrips.completed;
+      default:
+        return trips;
+    }
+  }, [trips, activeFilter, categorizedTrips]);
+
+  const filterCounts = {
+    all: trips.length,
+    active: categorizedTrips.active.length,
+    upcoming: categorizedTrips.upcoming.length,
+    completed: categorizedTrips.completed.length,
+  };
 
   const handleCreateTrip = async (data: CreateTripInput) => {
     try {
@@ -119,12 +157,19 @@ export default function Trips() {
         </Button>
       </div>
 
+      {/* Filters */}
+      <TripFilters 
+        activeFilter={activeFilter} 
+        onFilterChange={setActiveFilter}
+        counts={filterCounts}
+      />
+
       {/* Trip List */}
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      ) : trips.length === 0 ? (
+      ) : filteredTrips.length === 0 ? (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -134,20 +179,24 @@ export default function Trips() {
             <Compass className="h-8 w-8 text-muted-foreground" />
           </div>
           <h2 className="font-display text-xl font-semibold mb-2">
-            No trips yet
+            {activeFilter === 'all' ? 'No trips yet' : `No ${activeFilter} trips`}
           </h2>
           <p className="text-muted-foreground mb-6 max-w-sm">
-            Start planning your next adventure. Create a trip to track your budget
-            and expenses.
+            {activeFilter === 'all' 
+              ? 'Start planning your next adventure. Create a trip to track your budget and expenses.'
+              : `You don't have any ${activeFilter} trips at the moment.`
+            }
           </p>
-          <Button onClick={() => setFormOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Create Your First Trip
-          </Button>
+          {activeFilter === 'all' && (
+            <Button onClick={() => setFormOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Create Your First Trip
+            </Button>
+          )}
         </motion.div>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {trips.map((trip, index) => (
+          {filteredTrips.map((trip, index) => (
             <motion.div
               key={trip.id}
               initial={{ opacity: 0, y: 20 }}
