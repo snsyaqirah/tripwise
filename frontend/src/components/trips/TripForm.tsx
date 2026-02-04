@@ -4,6 +4,7 @@ import { countries, currencies, seasons, getCountryByCode } from '@/data/countri
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   Select,
   SelectContent,
@@ -19,7 +20,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Loader2 } from 'lucide-react';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import { Loader2, Check, ChevronsUpDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface TripFormProps {
   open: boolean;
@@ -36,9 +51,14 @@ interface FormErrors {
   totalBudget?: string;
 }
 
+type CollaborationMode = 'solo' | 'separated' | 'combined';
+
 export function TripForm({ open, onOpenChange, trip, onSubmit }: TripFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
+  const [countryOpen, setCountryOpen] = useState(false);
+  const [currencyOpen, setCurrencyOpen] = useState(false);
+  const [collaborationMode, setCollaborationMode] = useState<CollaborationMode>('solo');
 
   const [formData, setFormData] = useState<CreateTripInput>({
     name: '',
@@ -46,6 +66,7 @@ export function TripForm({ open, onOpenChange, trip, onSubmit }: TripFormProps) 
     startDate: '',
     endDate: '',
     totalBudget: 0,
+    budgetType: 'solo',
     season: null,
     favoriteCurrency: 'USD',
   });
@@ -61,9 +82,18 @@ export function TripForm({ open, onOpenChange, trip, onSubmit }: TripFormProps) 
         startDate: trip.startDate,
         endDate: trip.endDate,
         totalBudget: trip.totalBudget,
+        budgetType: trip.budgetType || 'shared',
         season: trip.season,
         favoriteCurrency: trip.favoriteCurrency,
       });
+      // Determine collaboration mode from existing trip
+      if (trip.budgetType === 'separated') {
+        setCollaborationMode('separated');
+      } else if (trip.budgetType === 'shared') {
+        setCollaborationMode('combined');
+      } else {
+        setCollaborationMode('solo');
+      }
     } else {
       setFormData({
         name: '',
@@ -71,9 +101,11 @@ export function TripForm({ open, onOpenChange, trip, onSubmit }: TripFormProps) 
         startDate: '',
         endDate: '',
         totalBudget: 0,
+        budgetType: 'solo',
         season: null,
         favoriteCurrency: 'USD',
       });
+      setCollaborationMode('solo');
     }
     setErrors({});
   }, [trip, open]);
@@ -133,9 +165,21 @@ export function TripForm({ open, onOpenChange, trip, onSubmit }: TripFormProps) 
     }));
   };
 
+  const handleCollaborationModeChange = (mode: CollaborationMode) => {
+    setCollaborationMode(mode);
+    // Auto-set budgetType based on collaboration mode
+    if (mode === 'solo') {
+      setFormData((prev) => ({ ...prev, budgetType: 'solo' }));
+    } else if (mode === 'separated') {
+      setFormData((prev) => ({ ...prev, budgetType: 'separated' }));
+    } else if (mode === 'combined') {
+      setFormData((prev) => ({ ...prev, budgetType: 'shared' }));
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] bg-card">
+      <DialogContent className="sm:max-w-[550px] bg-card max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="font-display text-xl">
             {trip ? 'Edit Trip' : 'Plan a New Trip'}
@@ -147,7 +191,52 @@ export function TripForm({ open, onOpenChange, trip, onSubmit }: TripFormProps) 
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
+          <div className="space-y-5 overflow-y-auto px-1 pr-4 max-h-[calc(90vh-180px)]">
+            {/* Collaboration Mode Selection */}
+            <div className="space-y-3 pb-5 border-b">
+              <Label className="text-base font-semibold">Trip Type</Label>
+              <RadioGroup
+                value={collaborationMode}
+                onValueChange={(value) => handleCollaborationModeChange(value as CollaborationMode)}
+                className="space-y-2"
+              >
+                <div className="flex items-start space-x-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                  <RadioGroupItem value="solo" id="solo" className="mt-0.5" />
+                  <div className="flex-1">
+                    <Label htmlFor="solo" className="font-medium cursor-pointer">
+                      Solo Trip
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Just you, managing your own budget
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                  <RadioGroupItem value="combined" id="combined" className="mt-0.5" />
+                  <div className="flex-1">
+                    <Label htmlFor="combined" className="font-medium cursor-pointer">
+                      Trip with Friends (Combined Budget)
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Share expenses from a common budget pool
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                  <RadioGroupItem value="separated" id="separated" className="mt-0.5" />
+                  <div className="flex-1">
+                    <Label htmlFor="separated" className="font-medium cursor-pointer">
+                      Trip with Friends (Separated Budget)
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Each member tracks their own budget separately
+                    </p>
+                  </div>
+                </div>
+              </RadioGroup>
+            </div>
+
           <div className="space-y-2">
             <Label htmlFor="name">Trip Name</Label>
             <Input
@@ -166,23 +255,53 @@ export function TripForm({ open, onOpenChange, trip, onSubmit }: TripFormProps) 
 
           <div className="space-y-2">
             <Label htmlFor="country">Destination Country</Label>
-            <Select
-              value={formData.destinationCountry}
-              onValueChange={handleCountryChange}
-            >
-              <SelectTrigger
-                className={errors.destinationCountry ? 'border-destructive' : ''}
-              >
-                <SelectValue placeholder="Select a country" />
-              </SelectTrigger>
-              <SelectContent className="max-h-[300px] bg-popover">
-                {countries.map((country) => (
-                  <SelectItem key={country.code} value={country.code}>
-                    {country.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <p className="text-xs text-muted-foreground">Click to search and select</p>
+            <Popover open={countryOpen} onOpenChange={setCountryOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={countryOpen}
+                  className={cn(
+                    "w-full justify-between",
+                    errors.destinationCountry ? 'border-destructive' : ''
+                  )}
+                >
+                  {formData.destinationCountry
+                    ? countries.find((country) => country.code === formData.destinationCountry)?.name
+                    : "Select a country"}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[400px] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Search country..." />
+                  <CommandList>
+                    <CommandEmpty>No country found.</CommandEmpty>
+                    <CommandGroup>
+                      {countries.map((country) => (
+                        <CommandItem
+                          key={country.code}
+                          value={country.name}
+                          onSelect={() => {
+                            handleCountryChange(country.code);
+                            setCountryOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              formData.destinationCountry === country.code ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          {country.name}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
             {errors.destinationCountry && (
               <p className="text-sm text-destructive">{errors.destinationCountry}</p>
             )}
@@ -224,7 +343,13 @@ export function TripForm({ open, onOpenChange, trip, onSubmit }: TripFormProps) 
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="budget">Total Budget</Label>
+              <Label htmlFor="budget">
+                {collaborationMode === 'solo' 
+                  ? 'Your Budget' 
+                  : collaborationMode === 'combined' 
+                  ? 'Shared Budget' 
+                  : 'Total Budget'}
+              </Label>
               <Input
                 id="budget"
                 type="number"
@@ -242,28 +367,77 @@ export function TripForm({ open, onOpenChange, trip, onSubmit }: TripFormProps) 
               {errors.totalBudget && (
                 <p className="text-sm text-destructive">{errors.totalBudget}</p>
               )}
+              <p className="text-xs text-muted-foreground">
+                {collaborationMode === 'solo' 
+                  ? 'Your personal trip budget' 
+                  : collaborationMode === 'combined' 
+                  ? 'Pool budget shared by all members' 
+                  : 'Can be allocated to individual members later'}
+              </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="currency">Currency</Label>
-              <Select
-                value={formData.favoriteCurrency}
-                onValueChange={(value) =>
-                  setFormData((prev) => ({ ...prev, favoriteCurrency: value }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-popover">
-                  {currencies.map((currency) => (
-                    <SelectItem key={currency.code} value={currency.code}>
-                      {currency.symbol} {currency.code}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="budgetType">Budget Type</Label>
+              <div className="flex h-10 items-center px-3 rounded-md border border-input bg-muted">
+                <span className="text-sm">
+                  {formData.budgetType === 'solo' ? 'Solo' : formData.budgetType === 'shared' ? 'Shared' : 'Separated'}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Auto-set based on trip type
+              </p>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="currency">Currency</Label>
+            <p className="text-xs text-muted-foreground">Auto-filled, click to change</p>
+            <Popover open={currencyOpen} onOpenChange={setCurrencyOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={currencyOpen}
+                  className="w-full justify-between"
+                >
+                  {formData.favoriteCurrency
+                    ? (() => {
+                        const currency = currencies.find((c) => c.code === formData.favoriteCurrency);
+                        return currency ? `${currency.symbol} ${currency.code}` : formData.favoriteCurrency;
+                      })()
+                    : "Select currency"}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[300px] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Search currency..." />
+                  <CommandList>
+                    <CommandEmpty>No currency found.</CommandEmpty>
+                    <CommandGroup>
+                      {currencies.map((currency) => (
+                        <CommandItem
+                          key={currency.code}
+                          value={`${currency.code} ${currency.name}`}
+                          onSelect={() => {
+                            setFormData((prev) => ({ ...prev, favoriteCurrency: currency.code }));
+                            setCurrencyOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              formData.favoriteCurrency === currency.code ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          {currency.symbol} {currency.code}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Conditional Season Selector */}
@@ -296,8 +470,9 @@ export function TripForm({ open, onOpenChange, trip, onSubmit }: TripFormProps) 
               </div>
             )}
           </div>
+          </div>
 
-          <DialogFooter className="pt-4">
+          <DialogFooter className="pt-4 mt-4 border-t">{/* Footer is outside scrollable area */}
             <Button
               type="button"
               variant="outline"

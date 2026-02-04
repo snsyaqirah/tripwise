@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { User, AuthState } from '@/types';
-import { mockUser } from '@/data/mockData';
+import { authService } from '@/services/authService';
+import { api } from '@/lib/axios';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
@@ -47,56 +48,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    
-    // Mock validation
-    if (email && password) {
-      const user = { ...mockUser, email, onboardingCompleted: false };
-      localStorage.setItem('tripwise_token', 'mock_token_123');
-      localStorage.setItem('tripwise_user', JSON.stringify(user));
+    try {
+      const response = await authService.login({ email, password });
       
-      // Check if this is first login (needs onboarding)
-      const savedOnboarding = localStorage.getItem('tripwise_onboarding_completed');
-      if (!savedOnboarding) {
+      // Save to browser storage
+      localStorage.setItem('tripwise_token', response.accessToken);
+      localStorage.setItem('tripwise_refresh_token', response.refreshToken);
+      localStorage.setItem('tripwise_user', JSON.stringify(response.user));
+      
+      // Check if user needs onboarding
+      if (!response.user.onboardingCompleted) {
         setNeedsOnboarding(true);
       }
       
       setAuthState({
-        user,
+        user: response.user,
         isAuthenticated: true,
         isLoading: false,
       });
-    } else {
-      throw new Error('Invalid credentials');
+    } catch (error: any) {
+      console.error('Login failed:', error);
+      throw new Error(error.response?.data?.message || 'Login failed');
     }
   }, []);
 
   const register = useCallback(async (name: string, email: string, password: string) => {
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    
-    if (name && email && password) {
-      const user = { ...mockUser, name, email, onboardingCompleted: false };
-      localStorage.setItem('tripwise_token', 'mock_token_123');
-      localStorage.setItem('tripwise_user', JSON.stringify(user));
+    try {
+      const response = await authService.register({ name, email, password });
       
-      // New registrations always need onboarding
+      // Save to browser storage
+      localStorage.setItem('tripwise_token', response.accessToken);
+      localStorage.setItem('tripwise_refresh_token', response.refreshToken);
+      localStorage.setItem('tripwise_user', JSON.stringify(response.user));
+      
+      // New users always need onboarding
       setNeedsOnboarding(true);
       
       setAuthState({
-        user,
+        user: response.user,
         isAuthenticated: true,
         isLoading: false,
       });
-    } else {
-      throw new Error('Invalid registration data');
+    } catch (error: any) {
+      console.error('Registration failed:', error);
+      throw new Error(error.response?.data?.message || 'Registration failed');
     }
   }, []);
 
   const logout = useCallback(() => {
-    localStorage.removeItem('tripwise_token');
-    localStorage.removeItem('tripwise_user');
+    authService.logout();
     localStorage.removeItem('tripwise_onboarding_completed');
     setNeedsOnboarding(false);
     setAuthState({
@@ -107,44 +107,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const loginWithGoogle = useCallback(async () => {
-    // Placeholder for Google OAuth
-    // In production, implement proper OAuth flow
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    
-    const user = { ...mockUser, onboardingCompleted: false };
-    localStorage.setItem('tripwise_token', 'mock_google_token');
-    localStorage.setItem('tripwise_user', JSON.stringify(user));
-    
-    // Google users also need onboarding for country/currency
-    const savedOnboarding = localStorage.getItem('tripwise_onboarding_completed');
-    if (!savedOnboarding) {
-      setNeedsOnboarding(true);
-    }
-    
-    setAuthState({
-      user,
-      isAuthenticated: true,
-      isLoading: false,
-    });
+    // TODO: Implement Google OAuth flow with backend
+    throw new Error('Google login not yet implemented');
   }, []);
 
-  const completeOnboarding = useCallback((data: { country: string; currency: string }) => {
-    localStorage.setItem('tripwise_onboarding_completed', 'true');
-    setNeedsOnboarding(false);
-    
-    setAuthState((prev) => {
-      if (prev.user) {
-        const updatedUser = {
-          ...prev.user,
-          country: data.country,
-          currency: data.currency,
-          onboardingCompleted: true,
+  const completeOnboarding = useCallback(async (data: { country: string; currency: string }) => {
+    try {
+      // Call backend API to update profile
+      const response = await api.put('/users/profile', data);
+      const updatedUser = response.data;
+      
+      // Update local state
+      setNeedsOnboarding(false);
+      localStorage.setItem('tripwise_onboarding_completed', 'true');
+      
+      setAuthState((prev) => {
+        const user = {
+          id: updatedUser.id,
+          name: updatedUser.name,
+          email: updatedUser.email,
+          avatar: updatedUser.avatar,
+          country: updatedUser.country,
+          currency: updatedUser.currency,
+          onboardingCompleted: updatedUser.onboardingCompleted,
         };
-        localStorage.setItem('tripwise_user', JSON.stringify(updatedUser));
-        return { ...prev, user: updatedUser };
-      }
-      return prev;
-    });
+        localStorage.setItem('tripwise_user', JSON.stringify(user));
+        return { ...prev, user };
+      });
+    } catch (error) {
+      console.error('Failed to complete onboarding:', error);
+      // Still update locally as fallback
+      localStorage.setItem('tripwise_onboarding_completed', 'true');
+      setNeedsOnboarding(false);
+      
+      setAuthState((prev) => {
+        if (prev.user) {
+          const updatedUser = {
+            ...prev.user,
+            country: data.country,
+            currency: data.currency,
+            onboardingCompleted: true,
+          };
+          localStorage.setItem('tripwise_user', JSON.stringify(updatedUser));
+          return { ...prev, user: updatedUser };
+        }
+        return prev;
+      });
+    }
   }, []);
 
   return (

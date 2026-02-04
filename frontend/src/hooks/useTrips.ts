@@ -1,12 +1,9 @@
-import { useState, useCallback } from 'react';
-import { Trip, CreateTripInput, UpdateTripInput } from '@/types';
-import { mockTrips } from '@/data/mockData';
-
-// Custom hook for trip management
-// In production, replace with actual API calls using the axios instance
+import { useState, useCallback, useEffect } from 'react';
+import { Trip } from '@/types';
+import { tripService, CreateTripRequest, UpdateTripRequest } from '@/services/tripService';
 
 export function useTrips() {
-  const [trips, setTrips] = useState<Trip[]>(mockTrips);
+  const [trips, setTrips] = useState<Trip[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -14,56 +11,92 @@ export function useTrips() {
     setIsLoading(true);
     setError(null);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setTrips(mockTrips);
-    } catch (err) {
-      setError('Failed to fetch trips');
+      const data = await tripService.getAllTrips();
+      setTrips(data);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to fetch trips');
+      console.error('Fetch trips error:', err);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  const createTrip = useCallback(async (input: CreateTripInput) => {
+  // Auto-fetch on mount
+  useEffect(() => {
+    fetchTrips();
+  }, [fetchTrips]);
+
+  const createTrip = useCallback(async (input: any) => {
     setIsLoading(true);
     setError(null);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      const newTrip: Trip = {
-        id: Date.now().toString(),
-        userId: '1',
-        ...input,
-        season: input.season ?? null,
-        spentAmount: 0,
-        remainingBudget: input.totalBudget,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+      // Map CreateTripInput to CreateTripRequest for backend
+      const requestData: CreateTripRequest = {
+        name: input.name,
+        destinationCountry: input.destinationCountry,
+        startDate: input.startDate,
+        endDate: input.endDate,
+        budget: input.totalBudget || input.budget,
+        currency: input.favoriteCurrency || input.currency,
+        budgetType: input.budgetType || 'per_person',
+        description: input.description,
+        image: input.image,
+        notes: input.notes,
+        status: input.status || 'PLANNED',
       };
+      
+      console.log('Creating trip with data:', requestData);
+      const newTrip = await tripService.createTrip(requestData);
+      console.log('Trip created successfully:', newTrip);
       setTrips((prev) => [...prev, newTrip]);
       return newTrip;
-    } catch (err) {
-      setError('Failed to create trip');
-      throw err;
+    } catch (err: any) {
+      let errorMsg = err.response?.data?.message || 'Failed to create trip';
+      
+      // Special handling for "User not found" error
+      if (errorMsg.includes('User not found')) {
+        errorMsg = 'Your session is outdated. Please log out and log in again to continue.';
+      }
+      
+      setError(errorMsg);
+      console.error('Create trip error:', err);
+      console.error('Error response:', err.response?.data);
+      throw new Error(errorMsg);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  const updateTrip = useCallback(async (input: UpdateTripInput) => {
+  const updateTrip = useCallback(async (input: any) => {
     setIsLoading(true);
     setError(null);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      // Map update input to backend request
+      const requestData: UpdateTripRequest = {
+        name: input.name,
+        destinationCountry: input.destinationCountry,
+        startDate: input.startDate,
+        endDate: input.endDate,
+        budget: input.totalBudget || input.budget,
+        currency: input.favoriteCurrency || input.currency,
+        budgetType: input.budgetType,
+        description: input.description,
+        image: input.image,
+        notes: input.notes,
+        status: input.status,
+        isArchived: input.isArchived,
+      };
+      
+      const updatedTrip = await tripService.updateTrip(input.id, requestData);
       setTrips((prev) =>
-        prev.map((trip) =>
-          trip.id === input.id
-            ? { ...trip, ...input, updatedAt: new Date().toISOString() }
-            : trip
-        )
+        prev.map((trip) => (trip.id === id ? updatedTrip : trip))
       );
-    } catch (err) {
-      setError('Failed to update trip');
-      throw err;
+      return updatedTrip;
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.message || 'Failed to update trip';
+      setError(errorMsg);
+      console.error('Update trip error:', err);
+      throw new Error(errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -73,11 +106,13 @@ export function useTrips() {
     setIsLoading(true);
     setError(null);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await tripService.deleteTrip(id);
       setTrips((prev) => prev.filter((trip) => trip.id !== id));
-    } catch (err) {
-      setError('Failed to delete trip');
-      throw err;
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.message || 'Failed to delete trip';
+      setError(errorMsg);
+      console.error('Delete trip error:', err);
+      throw new Error(errorMsg);
     } finally {
       setIsLoading(false);
     }

@@ -72,11 +72,12 @@ export default function Trips() {
         title: 'Trip created!',
         description: `Your trip "${data.name}" has been added.`,
       });
-    } catch (error) {
+    } catch (error: any) {
+      const errorMessage = error.message || 'Something went wrong. Please try again.';
       toast({
         variant: 'destructive',
         title: 'Failed to create trip',
-        description: 'Something went wrong. Please try again.',
+        description: errorMessage,
       });
       throw error;
     }

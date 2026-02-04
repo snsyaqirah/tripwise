@@ -1,0 +1,49 @@
+spring:
+  application:
+    name: tripwise-backend
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/tripwise
+    username: tripwise_user
+    password: tripwise_password
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    open-in-view: false
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+server:
+  port: 8080
+  error:
+    include-message: always
+    include-binding-errors: always
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:tripwise-super-secret-key-change-in-production-min-256-bits}
+    expiration: 86400000  # 24 hours
+    refresh-expiration: 604800000  # 7 days
+  
+  cors:
+    allowed-origins: http://localhost:5173,http://localhost:8081,http://localhost:8082
+    
+  password-reset:
+    token-expiration: 3600000  # 1 hour

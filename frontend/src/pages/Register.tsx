@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -26,9 +26,16 @@ export default function Register() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
 
-  const { register } = useAuth();
+  const { register, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   const validate = (): boolean => {
     const newErrors: FormErrors = {};
@@ -73,7 +80,7 @@ export default function Register() {
         title: 'Account created!',
         description: 'Welcome to TripWise. Start planning your adventure!',
       });
-      navigate('/trips');
+      navigate('/dashboard');
     } catch (error) {
       toast({
         variant: 'destructive',

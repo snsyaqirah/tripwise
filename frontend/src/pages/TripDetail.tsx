@@ -1,8 +1,8 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTrips } from '@/hooks/useTrips';
 import { useExpenses } from '@/hooks/useExpenses';
-import { Expense, CreateExpenseInput } from '@/types';
+import { Expense, CreateExpenseInput, Trip } from '@/types';
 import { getCountryByCode, getCurrencySymbol, expenseCategories } from '@/data/countries';
 import { ExpenseListWithTotal } from '@/components/expenses/ExpenseListWithTotal';
 import { ExpenseForm } from '@/components/expenses/ExpenseForm';
@@ -40,12 +40,12 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
+import { tripService } from '@/services/tripService';
 
 export default function TripDetail() {
   const { tripId } = useParams<{ tripId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { getTripById } = useTrips();
   const {
     expenses,
     isLoading,
@@ -56,13 +56,44 @@ export default function TripDetail() {
     getTotalSpent,
   } = useExpenses(tripId);
 
+  const [trip, setTrip] = useState<Trip | null>(null);
+  const [tripLoading, setTripLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | undefined>();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
   const [dismissedAlerts, setDismissedAlerts] = useState<string[]>([]);
 
-  const trip = tripId ? getTripById(tripId) : undefined;
+  useEffect(() => {
+    const fetchTrip = async () => {
+      if (!tripId) return;
+      
+      setTripLoading(true);
+      try {
+        const data = await tripService.getTripById(tripId);
+        setTrip(data);
+      } catch (error: any) {
+        console.error('Failed to fetch trip:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Failed to load trip',
+          description: error.response?.data?.message || 'Could not fetch trip details',
+        });
+      } finally {
+        setTripLoading(false);
+      }
+    };
+
+    fetchTrip();
+  }, [tripId, toast]);
+
+  if (tripLoading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (!trip) {
     return (
@@ -82,10 +113,10 @@ export default function TripDetail() {
   }
 
   const country = getCountryByCode(trip.destinationCountry);
-  const currencySymbol = getCurrencySymbol(trip.favoriteCurrency);
+  const currencySymbol = getCurrencySymbol(trip.currency);
   const totalSpent = getTotalSpent();
-  const remaining = trip.totalBudget - totalSpent;
-  const spentPercentage = (totalSpent / trip.totalBudget) * 100;
+  const remaining = trip.budget - totalSpent;
+  const spentPercentage = (totalSpent / trip.budget) * 100;
   const categoryTotals = getTotalByCategory();
 
   const handleCreateExpense = async (data: CreateExpenseInput) => {
@@ -205,8 +236,8 @@ export default function TripDetail() {
       {/* Budget Alerts */}
       <BudgetAlerts
         expenses={expenses}
-        totalBudget={trip.totalBudget}
-        currency={trip.favoriteCurrency}
+        totalBudget={trip.budget}
+        currency={trip.currency}
         onDismiss={handleDismissAlert}
         dismissedAlerts={dismissedAlerts}
       />
@@ -228,7 +259,7 @@ export default function TripDetail() {
             <CardContent>
               <div className="text-2xl font-bold">
                 {currencySymbol}
-                {trip.totalBudget.toLocaleString()}
+                {trip.budget.toLocaleString()}
               </div>
             </CardContent>
           </Card>
@@ -309,7 +340,7 @@ export default function TripDetail() {
 
       {/* Currency Card */}
       <TripCurrencyCard
-        userCurrency={trip.favoriteCurrency}
+        userCurrency={trip.currency}
         tripCurrency={country?.currency}
       />
 
@@ -361,7 +392,7 @@ export default function TripDetail() {
                 ) : (
                   <ExpenseListWithTotal
                     expenses={expenses}
-                    currency={trip.favoriteCurrency}
+                    currency={trip.currency}
                     onEdit={handleEditClick}
                     onDelete={handleDeleteClick}
                   />
@@ -374,8 +405,8 @@ export default function TripDetail() {
         <TabsContent value="charts">
           <BentoCharts
             expenses={expenses}
-            totalBudget={trip.totalBudget}
-            currency={trip.favoriteCurrency}
+            totalBudget={trip.budget}
+            currency={trip.currency}
             startDate={trip.startDate}
             endDate={trip.endDate}
           />

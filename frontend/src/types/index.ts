@@ -4,10 +4,14 @@ export interface User {
   name: string;
   email: string;
   avatar?: string;
+  authProvider: 'local' | 'google';
+  googleId?: string;
   country?: string;
   currency?: string;
   onboardingCompleted?: boolean;
+  status: number;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface AuthState {
@@ -16,21 +20,39 @@ export interface AuthState {
   isLoading: boolean;
 }
 
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+}
+
 // Trip types
 export interface Trip {
   id: string;
-  userId: string;
+  ownerId: string;
+  owner?: {
+    id: string;
+    name: string;
+    email: string;
+    avatar?: string;
+  };
   name: string;
   destinationCountry: string;
   startDate: string;
   endDate: string;
-  totalBudget: number;
-  spentAmount: number;
-  remainingBudget: number;
-  season: Season | null;
-  favoriteCurrency: string;
+  description?: string;
+  image?: string;
+  budget: number;
+  currency: string;
+  budgetType: string;
+  notes?: string;
+  status: 'PLANNED' | 'ONGOING' | 'COMPLETED';
+  isArchived: boolean;
   createdAt: string;
   updatedAt: string;
+  members?: TripMember[];
+  memberCount?: number;
+  totalExpenses?: number;
 }
 
 export type Season = 'spring' | 'summer' | 'autumn' | 'winter';
@@ -41,8 +63,41 @@ export interface CreateTripInput {
   startDate: string;
   endDate: string;
   totalBudget: number;
+  budgetType?: 'solo' | 'shared' | 'separated';
   season?: Season | null;
   favoriteCurrency: string;
+}
+
+export interface TripMember {
+  id: string;
+  tripId: string;
+  userId: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    avatar?: string;
+  };
+  role: 'owner' | 'editor' | 'viewer';
+  status: number;
+  joinedAt: string;
+}
+
+export interface MemberBudget {
+  id: string;
+  tripId: string;
+  userId: string;
+  user: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
+  allocatedBudget: number;
+  spentAmount: number;
+  remainingBudget: number;
+  status: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface UpdateTripInput extends Partial<CreateTripInput> {
@@ -51,24 +106,29 @@ export interface UpdateTripInput extends Partial<CreateTripInput> {
 
 // Expense types
 export type ExpenseCategory =
-  | 'accommodation'
-  | 'transportation'
-  | 'food'
-  | 'activities'
-  | 'shopping'
-  | 'other';
+  | 'ACCOMMODATION'
+  | 'TRANSPORTATION'
+  | 'FOOD'
+  | 'ACTIVITIES'
+  | 'SHOPPING'
+  | 'OTHER';
 
 export interface Expense {
   id: string;
-  tripId: string;
-  category: ExpenseCategory;
-  amount: number;
-  originalAmount: number;
-  originalCurrency: string;
-  convertedAmount: number;
-  currency: string;
-  date: string;
+  tripId: number;
+  paidBy: string;
+  paidByUser?: {
+    id: string;
+    name: string;
+    email: string;
+    avatar?: string;
+  };
   description: string;
+  amount: number;
+  currency: string;
+  category: ExpenseCategory;
+  expenseDate: string;
+  notes?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -123,11 +183,33 @@ export interface ApiResponse<T> {
 }
 
 export interface PaginatedResponse<T> {
-  data: T[];
-  total: number;
-  page: number;
-  limit: number;
-  hasMore: boolean;
+ / Destination Notes types
+export interface DestinationNote {
+  id: string;
+  tripId: string;
+  infoKey?: string;
+  title?: string;
+  content: string;
+  status: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Budget Alert types
+export interface BudgetAlert {
+  id: string;
+  tripId: string;
+  userId?: string;
+  thresholdPercentage: number;
+  triggered: boolean;
+  triggeredAt?: string;
+  status: number;
+  createdAt: string;
+}
+
+/*
+ * BONUS / UPGRADE NOTES:
+ * - Add CarbonFootprint type for environmental tracking
 }
 
 /*

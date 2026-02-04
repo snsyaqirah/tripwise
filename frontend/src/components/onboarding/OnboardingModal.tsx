@@ -15,9 +15,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
 import { countries, currencies } from '@/data/countries';
-import { Globe, Coins, Loader2, ArrowRight } from 'lucide-react';
+import { Globe, Coins, Loader2, ArrowRight, Check, ChevronsUpDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
 interface OnboardingModalProps {
   open: boolean;
@@ -29,6 +43,8 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
   const [country, setCountry] = useState('');
   const [currency, setCurrency] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [countryOpen, setCountryOpen] = useState(false);
+  const [currencyOpen, setCurrencyOpen] = useState(false);
 
   // Auto-set currency when country changes
   const handleCountryChange = (value: string) => {
@@ -106,18 +122,52 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
 
               <div className="space-y-2">
                 <Label htmlFor="country">Your Country</Label>
-                <Select value={country} onValueChange={handleCountryChange}>
-                  <SelectTrigger id="country" className="w-full">
-                    <SelectValue placeholder="Select your country" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {countries.map((c) => (
-                      <SelectItem key={c.code} value={c.code}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Click to search and select
+                </p>
+                <Popover open={countryOpen} onOpenChange={setCountryOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={countryOpen}
+                      className="w-full justify-between"
+                    >
+                      {country
+                        ? countries.find((c) => c.code === country)?.name
+                        : "Select your country"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[400px] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search country..." />
+                      <CommandList>
+                        <CommandEmpty>No country found.</CommandEmpty>
+                        <CommandGroup>
+                          {countries.map((c) => (
+                            <CommandItem
+                              key={c.code}
+                              value={c.name}
+                              onSelect={() => {
+                                handleCountryChange(c.code);
+                                setCountryOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  country === c.code ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {c.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
                 <p className="text-xs text-muted-foreground">
                   This helps us suggest relevant currencies and destinations.
                 </p>
@@ -152,18 +202,55 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
 
               <div className="space-y-2">
                 <Label htmlFor="currency">Preferred Currency</Label>
-                <Select value={currency} onValueChange={setCurrency}>
-                  <SelectTrigger id="currency" className="w-full">
-                    <SelectValue placeholder="Select your currency" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {currencies.map((c) => (
-                      <SelectItem key={c.code} value={c.code}>
-                        {c.symbol} {c.code} - {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Auto-filled, click to change
+                </p>
+                <Popover open={currencyOpen} onOpenChange={setCurrencyOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={currencyOpen}
+                      className="w-full justify-between"
+                    >
+                      {currency
+                        ? (() => {
+                            const curr = currencies.find((c) => c.code === currency);
+                            return curr ? `${curr.symbol} ${curr.code}` : currency;
+                          })()
+                        : "Select your currency"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[350px] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search currency..." />
+                      <CommandList>
+                        <CommandEmpty>No currency found.</CommandEmpty>
+                        <CommandGroup>
+                          {currencies.map((c) => (
+                            <CommandItem
+                              key={c.code}
+                              value={`${c.code} ${c.name}`}
+                              onSelect={() => {
+                                setCurrency(c.code);
+                                setCurrencyOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  currency === c.code ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {c.symbol} {c.code} - {c.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
                 {selectedCountryData && (
                   <p className="text-xs text-muted-foreground">
                     Based on {selectedCountryData.name}, we've suggested{' '}

@@ -17,9 +17,12 @@ interface TripCardProps {
 
 export function TripCard({ trip, onEdit, onDelete }: TripCardProps) {
   const country = getCountryByCode(trip.destinationCountry);
-  const currencySymbol = getCurrencySymbol(trip.favoriteCurrency);
-  const spentPercentage = (trip.spentAmount / trip.totalBudget) * 100;
-  const season = trip.season ? seasons.find((s) => s.value === trip.season) : null;
+  const currencySymbol = getCurrencySymbol(trip.currency || 'USD');
+  const totalBudget = trip.budget || 0;
+  const spentAmount = trip.totalExpenses || 0;
+  const remainingBudget = totalBudget - spentAmount;
+  const spentPercentage = totalBudget > 0 ? (spentAmount / totalBudget) * 100 : 0;
+  const season = null; // Remove season as it's not in the backend
 
   const getProgressColor = () => {
     if (spentPercentage >= 90) return 'bg-destructive';
@@ -87,8 +90,8 @@ export function TripCard({ trip, onEdit, onDelete }: TripCardProps) {
               <span className="text-muted-foreground">Budget</span>
               <span className="font-medium">
                 {currencySymbol}
-                {trip.spentAmount.toLocaleString()} / {currencySymbol}
-                {trip.totalBudget.toLocaleString()}
+                {spentAmount.toLocaleString()} / {currencySymbol}
+                {totalBudget.toLocaleString()}
               </span>
             </div>
             <div className="relative h-2 overflow-hidden rounded-full bg-muted">
@@ -101,7 +104,7 @@ export function TripCard({ trip, onEdit, onDelete }: TripCardProps) {
               <span>{spentPercentage.toFixed(0)}% spent</span>
               <span>
                 {currencySymbol}
-                {trip.remainingBudget.toLocaleString()} remaining
+                {remainingBudget.toLocaleString()} remaining
               </span>
             </div>
           </div>

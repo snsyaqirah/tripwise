@@ -1,72 +1,48 @@
-import { useState, useCallback } from 'react';
-import { Expense, CreateExpenseInput, UpdateExpenseInput, ExpenseCategory } from '@/types';
-import { mockExpenses, getTripExpenses } from '@/data/mockData';
+import { useState, useCallback, useEffect } from 'react';
+import { Expense, ExpenseCategory } from '@/types';
+import { expenseService, CreateExpenseRequest } from '@/services/expenseService';
 
 export function useExpenses(tripId?: string) {
-  const [expenses, setExpenses] = useState<Expense[]>(
-    tripId ? getTripExpenses(tripId) : mockExpenses
-  );
+  const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchExpenses = useCallback(async (tid?: string) => {
+    const targetTripId = tid || tripId;
+    if (!targetTripId) return;
+
     setIsLoading(true);
     setError(null);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      const targetId = tid || tripId;
-      setExpenses(targetId ? getTripExpenses(targetId) : mockExpenses);
-    } catch (err) {
-      setError('Failed to fetch expenses');
+      const data = await expenseService.getExpensesByTrip(targetTripId);
+      setExpenses(data);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to fetch expenses');
+      console.error('Fetch expenses error:', err);
     } finally {
       setIsLoading(false);
     }
   }, [tripId]);
 
-  const createExpense = useCallback(async (input: CreateExpenseInput) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      const newExpense: Expense = {
-        id: Date.now().toString(),
-        tripId: input.tripId,
-        category: input.category,
-        amount: input.amount,
-        originalAmount: input.amount,
-        originalCurrency: input.currency,
-        convertedAmount: input.amount, // In production, convert currency
-        currency: input.currency,
-        date: input.date,
-        description: input.description,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      setExpenses((prev) => [...prev, newExpense]);
-      return newExpense;
-    } catch (err) {
-      setError('Failed to create expense');
-      throw err;
-    } finally {
-      setIsLoading(false);
+  // Auto-fetch when tripId changes
+  useEffect(() => {
+    if (tripId) {
+      fetchExpenses();
     }
-  }, []);
+  }, [tripId, fetchExpenses]);
 
-  const updateExpense = useCallback(async (input: UpdateExpenseInput) => {
+  const createExpense = useCallback(async (input: CreateExpenseRequest) => {
     setIsLoading(true);
     setError(null);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      setExpenses((prev) =>
-        prev.map((expense) =>
-          expense.id === input.id
-            ? { ...expense, ...input, updatedAt: new Date().toISOString() }
-            : expense
-        )
-      );
-    } catch (err) {
-      setError('Failed to update expense');
-      throw err;
+      const newExpense = await expenseService.createExpense(input);
+      setExpenses((prev) => [newExpense, ...prev]);
+      return newExpense;
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.message || 'Failed to create expense';
+      setError(errorMsg);
+      console.error('Create expense error:', err);
+      throw new Error(errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -76,11 +52,13 @@ export function useExpenses(tripId?: string) {
     setIsLoading(true);
     setError(null);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      await expenseService.deleteExpense(id);
       setExpenses((prev) => prev.filter((expense) => expense.id !== id));
-    } catch (err) {
-      setError('Failed to delete expense');
-      throw err;
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.message || 'Failed to delete expense';
+      setError(errorMsg);
+      console.error('Delete expense error:', err);
+      throw new Error(errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -109,13 +87,13 @@ export function useExpenses(tripId?: string) {
   // Statistics
   const getTotalByCategory = useCallback(() => {
     return expenses.reduce((acc, e) => {
-      acc[e.category] = (acc[e.category] || 0) + e.amount;
+      acc[e.category] = (acc[e.category] || 0) + Number(e.amount);
       return acc;
     }, {} as Record<ExpenseCategory, number>);
   }, [expenses]);
 
   const getTotalSpent = useCallback(() => {
-    return expenses.reduce((sum, e) => sum + e.amount, 0);
+    return expenses.reduce((sum, e) => sum + Number(e.amount), 0);
   }, [expenses]);
 
   return {
@@ -124,7 +102,6 @@ export function useExpenses(tripId?: string) {
     error,
     fetchExpenses,
     createExpense,
-    updateExpense,
     deleteExpense,
     filterByCategory,
     searchExpenses,
