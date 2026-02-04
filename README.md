@@ -2,7 +2,7 @@
 
 A full-stack travel planning and budget management application that helps you organize trips, track expenses, manage budgets, and collaborate with other travelers.
 
-## 🌟 Overview
+## Overview
 
 TripWise is a comprehensive travel expense tracking system that allows users to:
 - Create and manage trips with multi-currency support
@@ -42,7 +42,7 @@ tripwise/
 └── README.md
 ```
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -127,7 +127,7 @@ npm run dev
 
 The frontend will be available at `http://localhost:8081`
 
-## 📦 Tech Stack
+## Tech Stack
 
 ### Frontend
 - **Framework**: React 18 with TypeScript
@@ -169,7 +169,7 @@ Controller Layer → Service Layer → Repository Layer → Database
 
 **Frontend (Component-Based):**
 ```
-Pag🐳 Docker Services
+## Docker Services
 
 The docker-compose.yml includes:
 
@@ -191,15 +191,12 @@ docker-compose down
 docker-compose up -d --build backend
 ```
 
-## 📚 Documentation
+## Documentation
 
-- [SETUP.md](SETUP.md) - Detailed setup instructions
-- [DOCKER_SETUP.md](DOCKER_SETUP.md) - Docker configuration guide
-- [AUTHENTICATION_GUIDE.md](AUTHENTICATION_GUIDE.md) - JWT authentication flow
 - [INTERVIEW_PREP.md](INTERVIEW_PREP.md) - Technical interview preparation
 - [INTERVIEW_QUICK_REF.md](INTERVIEW_QUICK_REF.md) - Quick reference for interviews
 
-## 🧪 Testing
+## Testing
 
 ### Frontend Tests
 ```bash
@@ -218,7 +215,7 @@ cd backend
 ## 🔧 Environment Variables
 
 ### Backend (application.yml)
-```yaml
+```l
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/tripwise
@@ -236,7 +233,7 @@ jwt:
 VITE_API_BASE_URL=http://localhost:8080
 ```
 
-## 🚀 Deployment
+## Deployment
 
 This application is ready for deployment with Docker. Simply:
 
@@ -250,7 +247,7 @@ For production, consider:
 - Configuring reverse proxy (nginx)
 - Setting up CI/CD pipeline
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
@@ -258,21 +255,21 @@ For production, consider:
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## 📝 License
+## License
 
 This project is open source and available under the MIT License.
 
-## 🔗 Links
+## Links
 
 - **Repository**: https://github.com/snsyaqirah/tripwise
 - **Live Demo**: Coming soon
 
-## 👤 Author
+## Author
 
 **Siti Nur Syaqirah**
 - GitHub: [@snsyaqirah](https://github.com/snsyaqirah)
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - Spring Boot for the robust backend framework
 - React team for the excellent frontend library
@@ -282,7 +279,7 @@ This project is open source and available under the MIT License.
 
 ---
 
-**Built with ❤️ as a full-stack development showcase project**
+**Built as a full-stack development showcase project**
 - `DELETE /trips/{id}` - Archive trip
 
 #### Expenses
