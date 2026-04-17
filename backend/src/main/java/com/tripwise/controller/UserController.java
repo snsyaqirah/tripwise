@@ -1,5 +1,7 @@
 package com.tripwise.controller;
 
+import com.tripwise.dto.auth.MessageResponse;
+import com.tripwise.dto.user.ChangePasswordRequest;
 import com.tripwise.dto.user.UpdateProfileRequest;
 import com.tripwise.entity.User;
 import com.tripwise.service.UserService;
@@ -36,9 +38,9 @@ public class UserController {
     }
 
     /**
-     * Update user profile (country and currency)
+     * Update user profile (name, country and currency)
      * Also marks onboarding as completed
-     * 
+     *
      * PUT /api/users/profile
      */
     @PutMapping("/profile")
@@ -46,8 +48,27 @@ public class UserController {
             @Valid @RequestBody UpdateProfileRequest request,
             Authentication authentication
     ) {
-        String userEmail = authentication.getName();  // JWT subject contains email
+        String userEmail = authentication.getName();
         User updatedUser = userService.updateProfile(userEmail, request);
         return ResponseEntity.ok(updatedUser);
+    }
+
+    /**
+     * Change user password
+     *
+     * PUT /api/users/change-password
+     */
+    @PutMapping("/change-password")
+    public ResponseEntity<MessageResponse> changePassword(
+            @Valid @RequestBody ChangePasswordRequest request,
+            Authentication authentication
+    ) {
+        String userEmail = authentication.getName();
+        try {
+            userService.changePassword(userEmail, request);
+            return ResponseEntity.ok(new MessageResponse("Password changed successfully"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(new MessageResponse(e.getMessage()));
+        }
     }
 }

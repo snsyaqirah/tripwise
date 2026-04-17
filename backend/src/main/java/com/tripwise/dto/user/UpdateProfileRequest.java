@@ -1,18 +1,18 @@
 package com.tripwise.dto.user;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * DTO for updating user profile
- * Used for onboarding completion
- */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class UpdateProfileRequest {
+
+    @Size(min = 2, max = 100, message = "Name must be between 2 and 100 characters")
+    private String name;
 
     @NotBlank(message = "Country is required")
     private String country;

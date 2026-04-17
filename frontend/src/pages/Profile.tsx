@@ -8,11 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { countries, currencies } from '@/data/countries';
+import { api } from '@/lib/axios';
 import { User, Mail, Globe, Coins, Lock, Loader2, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function Profile() {
-  const { user, completeOnboarding } = useAuth();
+  const { user, updateProfile } = useAuth();
   const { toast } = useToast();
   
   const [name, setName] = useState(user?.name || '');
@@ -50,26 +51,21 @@ export default function Profile() {
 
   const handleSaveProfile = async () => {
     setIsSaving(true);
-    
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    
-    // Update user in context and localStorage
-    const updatedUser = {
-      ...user!,
-      name,
-      country,
-      currency,
-    };
-    localStorage.setItem('tripwise_user', JSON.stringify(updatedUser));
-    completeOnboarding({ country, currency });
-    
-    toast({
-      title: 'Profile updated',
-      description: 'Your profile has been saved successfully.',
-    });
-    
-    setIsSaving(false);
+    try {
+      await updateProfile({ name, country, currency });
+      toast({
+        title: 'Profile updated',
+        description: 'Your profile has been saved successfully.',
+      });
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'Failed to update profile',
+        description: 'Something went wrong. Please try again.',
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleChangePassword = async () => {
@@ -92,19 +88,27 @@ export default function Profile() {
     }
 
     setIsChangingPassword(true);
-    
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    
-    toast({
-      title: 'Password changed',
-      description: 'Your password has been updated successfully.',
-    });
-    
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setIsChangingPassword(false);
+    try {
+      await api.put('/users/change-password', { currentPassword, newPassword });
+      toast({
+        title: 'Password changed',
+        description: 'Your password has been updated successfully.',
+      });
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        'Something went wrong. Please try again.';
+      toast({
+        variant: 'destructive',
+        title: 'Failed to change password',
+        description: message,
+      });
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   return (

@@ -42,6 +42,8 @@ export default function Dashboard() {
     ? differenceInDays(new Date(nextTrip.startDate), new Date())
     : null;
 
+  const currencySymbol = getCurrencySymbol(user?.currency || 'USD');
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -73,7 +75,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                ${totalBudget.toLocaleString()}
+                {currencySymbol}{totalBudget.toLocaleString()}
               </div>
               <p className="text-xs text-muted-foreground">
                 Across {trips.length} trip{trips.length !== 1 ? 's' : ''}
@@ -96,7 +98,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-primary">
-                ${totalSpent.toLocaleString()}
+                {currencySymbol}{totalSpent.toLocaleString()}
               </div>
               <p className="text-xs text-muted-foreground">
                 {totalBudget > 0
@@ -125,7 +127,7 @@ export default function Dashboard() {
                   totalRemaining < 0 ? 'text-destructive' : 'text-success'
                 }`}
               >
-                ${totalRemaining.toLocaleString()}
+                {currencySymbol}{totalRemaining.toLocaleString()}
               </div>
               <p className="text-xs text-muted-foreground">
                 Available to spend

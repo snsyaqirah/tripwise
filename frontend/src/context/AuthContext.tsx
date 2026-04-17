@@ -8,6 +8,7 @@ interface AuthContextType extends AuthState {
   loginWithGoogle: () => void;
   logout: () => void;
   completeOnboarding: (data: { country: string; currency: string }) => Promise<void>;
+  updateProfile: (data: { name: string; country: string; currency: string }) => Promise<void>;
   setUserFromSession: (user: User, accessToken: string, refreshToken: string) => void;
   needsOnboarding: boolean;
 }
@@ -95,6 +96,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const updateProfile = useCallback(async (data: { name: string; country: string; currency: string }) => {
+    const response = await api.put('/users/profile', data);
+    const updatedUser = { ...response.data, onboardingCompleted: true };
+    localStorage.setItem('tripwise_user', JSON.stringify(updatedUser));
+    setAuthState((prev) => ({ ...prev, user: updatedUser }));
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -103,6 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loginWithGoogle,
         logout,
         completeOnboarding,
+        updateProfile,
         setUserFromSession,
         needsOnboarding,
       }}

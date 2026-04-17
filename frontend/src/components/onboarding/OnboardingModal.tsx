@@ -35,7 +35,7 @@ import { cn } from '@/lib/utils';
 
 interface OnboardingModalProps {
   open: boolean;
-  onComplete: (data: { country: string; currency: string }) => void;
+  onComplete: (data: { country: string; currency: string }) => Promise<void>;
 }
 
 export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
@@ -65,10 +65,11 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
     if (!country || !currency) return;
 
     setIsSubmitting(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    onComplete({ country, currency });
-    setIsSubmitting(false);
+    try {
+      await onComplete({ country, currency });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const selectedCountryData = countries.find((c) => c.code === country);
