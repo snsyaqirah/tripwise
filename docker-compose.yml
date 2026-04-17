@@ -1,26 +1,4 @@
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: tripwise-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: tripwise
-      POSTGRES_USER: tripwise_user
-      POSTGRES_PASSWORD: tripwise_password
-      PGDATA: /var/lib/postgresql/data/pgdata
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./backend/schema.sql:/docker-entrypoint-initdb.d/schema.sql
-    networks:
-      - tripwise-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U tripwise_user -d tripwise"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   backend:
     build:
       context: ./backend
@@ -29,35 +7,7 @@ services:
     restart: unless-stopped
     ports:
       - "8080:8080"
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/tripwise
-      SPRING_DATASOURCE_USERNAME: tripwise_user
-      SPRING_DATASOURCE_PASSWORD: tripwise_password
-    networks:
-      - tripwise-network
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-  cloudbeaver:
-    image: dbeaver/cloudbeaver:latest
-    container_name: tripwise-cloudbeaver
-    restart: unless-stopped
-    ports:
-      - "8978:8978"
-    volumes:
-      - cloudbeaver_data:/opt/cloudbeaver/workspace
-    networks:
-      - tripwise-network
-    depends_on:
-      - postgres
-
-volumes:
-  postgres_data:
-    driver: local
-  cloudbeaver_data:
-    driver: local
-
-networks:
-  tripwise-network:
-    driver: bridge
+    # No DB env vars here — application.yml already points to Neon (cloud)
+    # Add any runtime overrides below if needed, e.g.:
+    # environment:
+    #   SPRING_PROFILES_ACTIVE: prod
