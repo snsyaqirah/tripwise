@@ -255,8 +255,11 @@ export default function Dashboard() {
               <div className="space-y-4">
                 {trips.slice(0, 3).map((trip) => {
                   const country = getCountryByCode(trip.destinationCountry);
-                  const spentPercentage =
-                    (trip.spentAmount / trip.totalBudget) * 100;
+                  const spentAmount = trip.spentAmount || 0;
+                  const totalBudget = trip.totalBudget || trip.budget || 0;
+                  const spentPercentage = totalBudget > 0
+                    ? (spentAmount / totalBudget) * 100
+                    : 0;
 
                   return (
                     <Link
@@ -276,11 +279,11 @@ export default function Dashboard() {
                       <div className="text-right">
                         <p className="font-semibold">
                           {getCurrencySymbol(trip.favoriteCurrency)}
-                          {trip.spentAmount.toLocaleString()}
+                          {spentAmount.toLocaleString()}
                           <span className="text-muted-foreground font-normal">
                             {' '}
                             / {getCurrencySymbol(trip.favoriteCurrency)}
-                            {trip.totalBudget.toLocaleString()}
+                            {totalBudget.toLocaleString()}
                           </span>
                         </p>
                         <div className="w-24 h-1.5 rounded-full bg-muted mt-1 overflow-hidden">
