@@ -1,160 +1,237 @@
 package com.tripwise.service;
 
-import com.tripwise.dto.auth.LoginRequest;
-import com.tripwise.dto.auth.LoginResponse;
-import com.tripwise.dto.auth.RegisterRequest;
+import com.tripwise.dto.auth.*;
+import com.tripwise.entity.EmailVerificationCode;
 import com.tripwise.entity.User;
 import com.tripwise.exception.InvalidTokenException;
 import com.tripwise.exception.UserAlreadyExistsException;
+import com.tripwise.repository.EmailVerificationCodeRepository;
 import com.tripwise.repository.UserRepository;
 import com.tripwise.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Authentication Service
- * 
- * Contains business logic for authentication operations
- * 
- * @Service: Marks this as a service layer component
- * @RequiredArgsConstructor: Lombok generates constructor
- * @Transactional: Database operations run in transactions
- */
+import java.security.SecureRandom;
+import java.time.LocalDateTime;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final EmailVerificationCodeRepository codeRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
-    private final AuthenticationManager authenticationManager;
+    private final EmailService emailService;
 
-    /**
-     * Register new user
-     * 
-     * Steps:
-     * 1. Check if email already exists
-     * 2. Create new user
-     * 3. Hash password with BCrypt
-     * 4. Save to database
-     * 5. Generate JWT tokens
-     * 6. Return response with tokens
-     */
-    public LoginResponse register(RegisterRequest request) {
-        // Check if email already exists
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new UserAlreadyExistsException("Email already registered");
+    @Value("${app.email.verification-expiry-minutes}")
+    private int codeExpiryMinutes;
+
+    private static final SecureRandom RANDOM = new SecureRandom();
+
+    // ── Step 1: Initiate signup ───────────────────────────────────────────────
+
+    public MessageResponse initiateSignup(InitiateSignupRequest request) {
+        String email = request.getEmail().toLowerCase().trim();
+
+        // If a fully-verified account exists, reject
+        userRepository.findByEmail(email).ifPresent(existing -> {
+            if (Boolean.TRUE.equals(existing.getEmailVerified())) {
+                throw new UserAlreadyExistsException("An account with this email already exists.");
+            }
+        });
+
+        sendOtp(email, "signup");
+        return new MessageResponse("Verification code sent to " + email);
+    }
+
+    // ── Step 2: Verify OTP ────────────────────────────────────────────────────
+
+    public VerifyEmailResponse verifyEmail(VerifyEmailRequest request) {
+        String email = request.getEmail().toLowerCase().trim();
+        validateOtp(email, request.getCode(), request.getPurpose());
+
+        // Mark all previous codes as used
+        codeRepository.markAllUsedByEmailAndPurpose(email, request.getPurpose());
+
+        // Issue a short-lived verification token
+        String verificationToken = jwtUtil.generateVerificationToken(email, request.getPurpose());
+        return new VerifyEmailResponse(verificationToken, "Email verified successfully.");
+    }
+
+    // ── Step 3: Complete signup ───────────────────────────────────────────────
+
+    public LoginResponse completeSignup(CompleteSignupRequest request) {
+        String token = request.getVerificationToken();
+
+        if (!jwtUtil.isVerificationToken(token)) {
+            throw new InvalidTokenException("Invalid or expired verification token.");
         }
 
-        // Create new user
-        User user = new User();
-        user.setName(request.getName());
-        user.setEmail(request.getEmail());
-        
-        // Hash password - NEVER store plain text passwords!
-        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-        
-        user.setAuthProvider(User.AuthProvider.local);
-        user.setIsDeleted(false);  // User is active (not deleted)
-        user.setOnboardingCompleted(false);  // User needs to complete onboarding
+        String purpose = jwtUtil.extractCustomClaim(token, "purpose");
+        if (!"signup".equals(purpose)) {
+            throw new InvalidTokenException("Token is not valid for signup.");
+        }
 
-        // Save to database
+        String email = jwtUtil.extractUsername(token);
+
+        // Create or update stub account
+        User user = userRepository.findByEmail(email)
+                .orElse(User.builder()
+                        .email(email)
+                        .authProvider(User.AuthProvider.local)
+                        .build());
+
+        if (Boolean.TRUE.equals(user.getEmailVerified())) {
+            throw new UserAlreadyExistsException("Account already exists. Please log in.");
+        }
+
+        user.setName(request.getName());
+        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        user.setEmailVerified(true);
+        user.setIsDeleted(false);
+        user.setOnboardingCompleted(false);
+
         user = userRepository.save(user);
 
-        // Generate JWT tokens
-        String accessToken = jwtUtil.generateToken(user);
-        String refreshToken = jwtUtil.generateRefreshToken(user);
-
-        // Return response
-        return buildLoginResponse(user, accessToken, refreshToken);
+        return buildLoginResponse(user);
     }
 
-    /**
-     * Login existing user
-     * 
-     * Steps:
-     * 1. Authenticate with Spring Security
-     * 2. Load user from database
-     * 3. Generate JWT tokens
-     * 4. Return response with tokens
-     */
+    // ── Login ─────────────────────────────────────────────────────────────────
+
     public LoginResponse login(LoginRequest request) {
-        // Authenticate user with Spring Security
-        // This will throw exception if credentials are invalid
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
-                        request.getPassword()
-                )
-        );
+        String email = request.getEmail().toLowerCase().trim();
 
-        // Load user from database
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-
-        // Generate JWT tokens
-        String accessToken = jwtUtil.generateToken(user);
-        String refreshToken = jwtUtil.generateRefreshToken(user);
-
-        // Return response
-        return buildLoginResponse(user, accessToken, refreshToken);
-    }
-
-    /**
-     * Build login response
-     * 
-     * Helper method to create LoginResponse DTO
-     */
-    private LoginResponse buildLoginResponse(User user, String accessToken, String refreshToken) {
-        // Create user DTO (don't expose password!)
-        LoginResponse.UserDto userDto = new LoginResponse.UserDto();
-        userDto.setId(user.getId());
-        userDto.setName(user.getName());
-        userDto.setEmail(user.getEmail());
-        userDto.setAvatar(user.getAvatar());
-        userDto.setCountry(user.getCountry());
-        userDto.setCurrency(user.getCurrency());
-        userDto.setOnboardingCompleted(user.getOnboardingCompleted());
-        userDto.setAuthProvider(user.getAuthProvider().name());
-
-        // Create response
-        LoginResponse response = new LoginResponse();
-        response.setAccessToken(accessToken);
-        response.setRefreshToken(refreshToken);
-        response.setExpiresIn(3600000L);  // 1 hour in milliseconds
-        response.setUser(userDto);
-
-        return response;
-    }
-
-    /**
-     * Refresh access token
-     * 
-     * When access token expires, use refresh token to get new access token
-     */
-    public LoginResponse refreshToken(String refreshToken) {
-        // Extract email from refresh token
-        String email = jwtUtil.extractUsername(refreshToken);
-        
-        // Load user
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+                .orElseThrow(() -> new BadCredentialsException("Invalid email or password."));
 
-        // Validate refresh token
-        if (!jwtUtil.validateToken(refreshToken, user)) {
-            throw new InvalidTokenException("Invalid refresh token");
+        if (!Boolean.TRUE.equals(user.getEmailVerified())) {
+            throw new BadCredentialsException("Email not verified. Please complete signup first.");
         }
 
-        // Generate new access token
-        String newAccessToken = jwtUtil.generateToken(user);
+        if (Boolean.TRUE.equals(user.getIsDeleted())) {
+            throw new BadCredentialsException("Account is disabled.");
+        }
 
-        // Return response
-        return buildLoginResponse(user, newAccessToken, refreshToken);
+        if (user.getPasswordHash() == null ||
+                !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            throw new BadCredentialsException("Invalid email or password.");
+        }
+
+        return buildLoginResponse(user);
+    }
+
+    // ── Forgot password ───────────────────────────────────────────────────────
+
+    public MessageResponse forgotPassword(ForgotPasswordRequest request) {
+        String email = request.getEmail().toLowerCase().trim();
+
+        userRepository.findByEmail(email)
+                .filter(u -> Boolean.TRUE.equals(u.getEmailVerified()))
+                .orElseThrow(() -> new UsernameNotFoundException("No verified account found for this email."));
+
+        sendOtp(email, "forgot_password");
+        return new MessageResponse("Password reset code sent to " + email);
+    }
+
+    // ── Reset password ────────────────────────────────────────────────────────
+
+    public MessageResponse resetPassword(ResetPasswordRequest request) {
+        String token = request.getVerificationToken();
+
+        if (!jwtUtil.isVerificationToken(token)) {
+            throw new InvalidTokenException("Invalid or expired verification token.");
+        }
+
+        String purpose = jwtUtil.extractCustomClaim(token, "purpose");
+        if (!"forgot_password".equals(purpose)) {
+            throw new InvalidTokenException("Token is not valid for password reset.");
+        }
+
+        String email = jwtUtil.extractUsername(token);
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found."));
+
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+
+        return new MessageResponse("Password reset successfully. You can now log in.");
+    }
+
+    // ── Refresh token ─────────────────────────────────────────────────────────
+
+    public LoginResponse refreshToken(String refreshToken) {
+        String email = jwtUtil.extractUsername(refreshToken);
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found."));
+
+        if (!jwtUtil.validateToken(refreshToken, user)) {
+            throw new InvalidTokenException("Invalid or expired refresh token.");
+        }
+
+        return buildLoginResponse(user);
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private void sendOtp(String email, String purpose) {
+        String code = String.format("%06d", RANDOM.nextInt(1_000_000));
+
+        EmailVerificationCode record = EmailVerificationCode.builder()
+                .email(email)
+                .code(code)
+                .purpose(purpose)
+                .expiresAt(LocalDateTime.now().plusMinutes(codeExpiryMinutes))
+                .build();
+
+        codeRepository.save(record);
+        emailService.sendVerificationCode(email, code, purpose);
+    }
+
+    private void validateOtp(String email, String code, String purpose) {
+        EmailVerificationCode record = codeRepository
+                .findTopByEmailAndPurposeAndUsedFalseOrderByCreatedAtDesc(email, purpose)
+                .orElseThrow(() -> new InvalidTokenException("No active code found. Please request a new one."));
+
+        if (record.isExpired()) {
+            throw new InvalidTokenException("Code has expired. Please request a new one.");
+        }
+
+        if (!record.getCode().equals(code)) {
+            throw new InvalidTokenException("Incorrect code. Please try again.");
+        }
+    }
+
+    LoginResponse buildLoginResponse(User user) {
+        String accessToken  = jwtUtil.generateToken(user);
+        String refreshToken = jwtUtil.generateRefreshToken(user);
+
+        LoginResponse.UserDto userDto = LoginResponse.UserDto.builder()
+                .id(user.getId())
+                .name(user.getName())
+                .email(user.getEmail())
+                .avatar(user.getAvatar())
+                .authProvider(user.getAuthProvider().name())
+                .country(user.getCountry())
+                .currency(user.getCurrency())
+                .onboardingCompleted(user.getOnboardingCompleted())
+                .build();
+
+        return LoginResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .expiresIn(jwtUtil.getExpirationTime())
+                .user(userDto)
+                .build();
     }
 }

@@ -46,8 +46,4 @@ public interface UserRepository extends JpaRepository<User, Long> {
      */
     Optional<User> findByGoogleId(String googleId);
 
-    /**
-     * Find user by password reset token
-     */
-    Optional<User> findByPasswordResetToken(String token);
 }
