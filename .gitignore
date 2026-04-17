@@ -37,5 +37,8 @@ dist-ssr
 # Windows accidentally created files
 nul
 
+# Backend build output - never commit compiled files
+backend/target/
+
 # Backend secrets - never commit real credentials
 backend/src/main/resources/application.yml
