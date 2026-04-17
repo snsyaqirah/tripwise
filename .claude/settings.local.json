@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(where java:*)",
+      "Read(//c/Program Files/**)",
+      "Read(//c/Program Files/Microsoft//**)",
+      "Bash(ls \"/c/apache-maven\"*)",
+      "Bash(ls \"/c/Program Files/apache-maven\"*)"
+    ]
+  }
+}
