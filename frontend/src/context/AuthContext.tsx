@@ -5,10 +5,10 @@ import { api } from '@/lib/axios';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  loginWithGoogle: () => void;
   logout: () => void;
-  loginWithGoogle: () => Promise<void>;
-  completeOnboarding: (data: { country: string; currency: string }) => void;
+  completeOnboarding: (data: { country: string; currency: string }) => Promise<void>;
+  setUserFromSession: (user: User, accessToken: string, refreshToken: string) => void;
   needsOnboarding: boolean;
 }
 
@@ -22,25 +22,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   });
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
-  // Check for existing session on mount
   useEffect(() => {
     const token = localStorage.getItem('tripwise_token');
-    const savedOnboarding = localStorage.getItem('tripwise_onboarding_completed');
-    
-    if (token) {
-      // In a real app, validate token with backend
-      const savedUser = localStorage.getItem('tripwise_user');
-      const user = savedUser ? JSON.parse(savedUser) : mockUser;
-      
-      setAuthState({
-        user,
-        isAuthenticated: true,
-        isLoading: false,
-      });
-      
-      // Check if onboarding is needed
-      if (!savedOnboarding && !user.onboardingCompleted) {
-        setNeedsOnboarding(true);
+    const savedUser = localStorage.getItem('tripwise_user');
+
+    if (token && savedUser) {
+      try {
+        const user: User = JSON.parse(savedUser);
+        setAuthState({ user, isAuthenticated: true, isLoading: false });
+        if (!user.onboardingCompleted) setNeedsOnboarding(true);
+      } catch {
+        authService.clearSession();
+        setAuthState({ user: null, isAuthenticated: false, isLoading: false });
       }
     } else {
       setAuthState((prev) => ({ ...prev, isLoading: false }));
@@ -48,110 +41,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    try {
-      const response = await authService.login({ email, password });
-      
-      // Save to browser storage
-      localStorage.setItem('tripwise_token', response.accessToken);
-      localStorage.setItem('tripwise_refresh_token', response.refreshToken);
-      localStorage.setItem('tripwise_user', JSON.stringify(response.user));
-      
-      // Check if user needs onboarding
-      if (!response.user.onboardingCompleted) {
-        setNeedsOnboarding(true);
-      }
-      
-      setAuthState({
-        user: response.user,
-        isAuthenticated: true,
-        isLoading: false,
-      });
-    } catch (error: any) {
-      console.error('Login failed:', error);
-      throw new Error(error.response?.data?.message || 'Login failed');
-    }
+    const response = await authService.login(email, password);
+    authService.saveSession(response);
+    if (!response.user.onboardingCompleted) setNeedsOnboarding(true);
+    setAuthState({ user: response.user, isAuthenticated: true, isLoading: false });
   }, []);
 
-  const register = useCallback(async (name: string, email: string, password: string) => {
-    try {
-      const response = await authService.register({ name, email, password });
-      
-      // Save to browser storage
-      localStorage.setItem('tripwise_token', response.accessToken);
-      localStorage.setItem('tripwise_refresh_token', response.refreshToken);
-      localStorage.setItem('tripwise_user', JSON.stringify(response.user));
-      
-      // New users always need onboarding
-      setNeedsOnboarding(true);
-      
-      setAuthState({
-        user: response.user,
-        isAuthenticated: true,
-        isLoading: false,
-      });
-    } catch (error: any) {
-      console.error('Registration failed:', error);
-      throw new Error(error.response?.data?.message || 'Registration failed');
-    }
+  /** Called by OAuthCallback page after Google redirect */
+  const setUserFromSession = useCallback(
+    (user: User, accessToken: string, refreshToken: string) => {
+      localStorage.setItem('tripwise_token', accessToken);
+      localStorage.setItem('tripwise_refresh_token', refreshToken);
+      localStorage.setItem('tripwise_user', JSON.stringify(user));
+      if (!user.onboardingCompleted) setNeedsOnboarding(true);
+      setAuthState({ user, isAuthenticated: true, isLoading: false });
+    },
+    []
+  );
+
+  /** Redirect browser to backend Google OAuth — Spring handles the rest */
+  const loginWithGoogle = useCallback(() => {
+    window.location.href = 'http://localhost:8080/oauth2/authorization/google';
   }, []);
 
   const logout = useCallback(() => {
-    authService.logout();
-    localStorage.removeItem('tripwise_onboarding_completed');
+    authService.clearSession();
     setNeedsOnboarding(false);
-    setAuthState({
-      user: null,
-      isAuthenticated: false,
-      isLoading: false,
-    });
-  }, []);
-
-  const loginWithGoogle = useCallback(async () => {
-    // TODO: Implement Google OAuth flow with backend
-    throw new Error('Google login not yet implemented');
+    setAuthState({ user: null, isAuthenticated: false, isLoading: false });
   }, []);
 
   const completeOnboarding = useCallback(async (data: { country: string; currency: string }) => {
     try {
-      // Call backend API to update profile
       const response = await api.put('/users/profile', data);
       const updatedUser = response.data;
-      
-      // Update local state
-      setNeedsOnboarding(false);
+      const user = {
+        ...updatedUser,
+        onboardingCompleted: true,
+      };
+      localStorage.setItem('tripwise_user', JSON.stringify(user));
       localStorage.setItem('tripwise_onboarding_completed', 'true');
-      
+      setNeedsOnboarding(false);
+      setAuthState((prev) => ({ ...prev, user }));
+    } catch {
+      // Fallback: update locally
+      localStorage.setItem('tripwise_onboarding_completed', 'true');
+      setNeedsOnboarding(false);
       setAuthState((prev) => {
-        const user = {
-          id: updatedUser.id,
-          name: updatedUser.name,
-          email: updatedUser.email,
-          avatar: updatedUser.avatar,
-          country: updatedUser.country,
-          currency: updatedUser.currency,
-          onboardingCompleted: updatedUser.onboardingCompleted,
-        };
+        if (!prev.user) return prev;
+        const user = { ...prev.user, ...data, onboardingCompleted: true };
         localStorage.setItem('tripwise_user', JSON.stringify(user));
         return { ...prev, user };
-      });
-    } catch (error) {
-      console.error('Failed to complete onboarding:', error);
-      // Still update locally as fallback
-      localStorage.setItem('tripwise_onboarding_completed', 'true');
-      setNeedsOnboarding(false);
-      
-      setAuthState((prev) => {
-        if (prev.user) {
-          const updatedUser = {
-            ...prev.user,
-            country: data.country,
-            currency: data.currency,
-            onboardingCompleted: true,
-          };
-          localStorage.setItem('tripwise_user', JSON.stringify(updatedUser));
-          return { ...prev, user: updatedUser };
-        }
-        return prev;
       });
     }
   }, []);
@@ -161,10 +100,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         ...authState,
         login,
-        register,
-        logout,
         loginWithGoogle,
+        logout,
         completeOnboarding,
+        setUserFromSession,
         needsOnboarding,
       }}
     >
@@ -175,17 +114,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 }
-
-/*
- * BONUS / UPGRADE NOTES:
- * - Implement proper JWT token validation
- * - Add refresh token logic
- * - Add social login providers (Google, Facebook, Apple)
- * - Add password reset functionality
- * - Add email verification flow
- */

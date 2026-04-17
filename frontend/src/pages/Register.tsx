@@ -1,96 +1,147 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { authService } from '@/services/authService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Compass, Loader2, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Compass, Loader2, Mail, Lock, User, Eye, EyeOff, ArrowLeft, CheckCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-interface FormErrors {
-  name?: string;
-  email?: string;
-  password?: string;
-  confirmPassword?: string;
-}
+type Step = 'email' | 'otp' | 'profile';
 
 export default function Register() {
-  const [name, setName] = useState('');
+  const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [verificationToken, setVerificationToken] = useState('');
+  const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState<FormErrors>({});
+  const [error, setError] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
 
-  const { register, isAuthenticated } = useAuth();
+  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const { setUserFromSession, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Redirect if already logged in
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/dashboard', { replace: true });
-    }
+    if (isAuthenticated) navigate('/dashboard', { replace: true });
   }, [isAuthenticated, navigate]);
 
-  const validate = (): boolean => {
-    const newErrors: FormErrors = {};
-
-    if (!name.trim()) {
-      newErrors.name = 'Name is required';
-    } else if (name.trim().length < 2) {
-      newErrors.name = 'Name must be at least 2 characters';
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      const t = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+      return () => clearTimeout(t);
     }
+  }, [resendCooldown]);
 
-    if (!email) {
-      newErrors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      newErrors.email = 'Please enter a valid email';
-    }
+  // ── Step 1: send OTP ──────────────────────────────────────────────────────
 
-    if (!password) {
-      newErrors.password = 'Password is required';
-    } else if (password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
-    }
-
-    if (!confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password';
-    } else if (password !== confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!validate()) return;
-
+    setError('');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError('Please enter a valid email');
+      return;
+    }
     setIsSubmitting(true);
     try {
-      await register(name, email, password);
-      toast({
-        title: 'Account created!',
-        description: 'Welcome to TripWise. Start planning your adventure!',
-      });
-      navigate('/dashboard');
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Registration failed',
-        description: 'Could not create your account. Please try again.',
-      });
+      await authService.initiateSignup(email);
+      setStep('otp');
+      setResendCooldown(60);
+      toast({ title: 'Code sent!', description: `Check ${email} for your 6-digit code.` });
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to send code. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  // ── Step 2: verify OTP ────────────────────────────────────────────────────
+
+  const handleOtpChange = (index: number, value: string) => {
+    if (!/^\d*$/.test(value)) return;
+    const next = [...otp];
+    next[index] = value.slice(-1);
+    setOtp(next);
+    if (value && index < 5) otpRefs.current[index + 1]?.focus();
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (e: React.ClipboardEvent) => {
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (pasted.length === 6) {
+      setOtp(pasted.split(''));
+      otpRefs.current[5]?.focus();
+    }
+  };
+
+  const handleOtpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    const code = otp.join('');
+    if (code.length !== 6) { setError('Enter the 6-digit code'); return; }
+    setIsSubmitting(true);
+    try {
+      const res = await authService.verifyEmail(email, code, 'signup');
+      setVerificationToken(res.verificationToken);
+      setStep('profile');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Incorrect or expired code. Try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (resendCooldown > 0) return;
+    try {
+      await authService.initiateSignup(email);
+      setOtp(['', '', '', '', '', '']);
+      setResendCooldown(60);
+      toast({ title: 'Code resent!', description: `New code sent to ${email}.` });
+    } catch {
+      toast({ variant: 'destructive', title: 'Failed to resend', description: 'Please try again.' });
+    }
+  };
+
+  // ── Step 3: complete signup ───────────────────────────────────────────────
+
+  const handleProfileSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (!name.trim() || name.trim().length < 2) { setError('Name must be at least 2 characters'); return; }
+    if (password.length < 8) { setError('Password must be at least 8 characters'); return; }
+    if (password !== confirmPassword) { setError('Passwords do not match'); return; }
+
+    setIsSubmitting(true);
+    try {
+      const res = await authService.completeSignup(verificationToken, name.trim(), password);
+      authService.saveSession(res);
+      setUserFromSession(res.user, res.accessToken, res.refreshToken);
+      toast({ title: 'Welcome to TripWise!', description: 'Your account is ready.' });
+      navigate('/dashboard');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to create account. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const stepLabels = ['Email', 'Verify', 'Profile'];
+  const stepIndex = step === 'email' ? 0 : step === 'otp' ? 1 : 2;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
@@ -106,135 +157,194 @@ export default function Register() {
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
               <Compass className="h-7 w-7" />
             </div>
-            <span className="font-display text-2xl font-bold text-foreground">
-              TripWise
-            </span>
+            <span className="font-display text-2xl font-bold text-foreground">TripWise</span>
           </Link>
         </div>
 
+        {/* Step indicators */}
+        <div className="mb-6 flex items-center justify-center gap-2">
+          {stepLabels.map((label, i) => (
+            <div key={label} className="flex items-center gap-2">
+              <div className="flex flex-col items-center gap-1">
+                <div
+                  className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold transition-colors ${
+                    i < stepIndex
+                      ? 'bg-primary text-primary-foreground'
+                      : i === stepIndex
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground'
+                  }`}
+                >
+                  {i < stepIndex ? <CheckCircle className="h-4 w-4" /> : i + 1}
+                </div>
+                <span className={`text-[10px] ${i === stepIndex ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
+                  {label}
+                </span>
+              </div>
+              {i < stepLabels.length - 1 && (
+                <div className={`mb-4 h-px w-8 transition-colors ${i < stepIndex ? 'bg-primary' : 'bg-border'}`} />
+              )}
+            </div>
+          ))}
+        </div>
+
         <Card className="border-border shadow-tripwise">
-          <CardHeader className="space-y-1 text-center">
-            <CardTitle className="font-display text-2xl">Create an account</CardTitle>
-            <CardDescription>
-              Start planning your next adventure with TripWise
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="John Doe"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className={`pl-10 ${errors.name ? 'border-destructive' : ''}`}
-                  />
-                </div>
-                {errors.name && (
-                  <p className="text-sm text-destructive">{errors.name}</p>
-                )}
-              </div>
+          <AnimatePresence mode="wait">
+            {/* ── Step 1: Email ── */}
+            {step === 'email' && (
+              <motion.div key="email" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                <CardHeader className="space-y-1 text-center">
+                  <CardTitle className="font-display text-2xl">Create an account</CardTitle>
+                  <CardDescription>Enter your email to get started</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleEmailSubmit} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="you@example.com"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className={`pl-10 ${error ? 'border-destructive' : ''}`}
+                          autoFocus
+                        />
+                      </div>
+                      {error && <p className="text-sm text-destructive">{error}</p>}
+                    </div>
+                    <Button type="submit" className="w-full" disabled={isSubmitting}>
+                      {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Sending code...</> : 'Continue'}
+                    </Button>
+                  </form>
 
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className={`pl-10 ${errors.email ? 'border-destructive' : ''}`}
-                  />
-                </div>
-                {errors.email && (
-                  <p className="text-sm text-destructive">{errors.email}</p>
-                )}
-              </div>
+                  <div className="relative my-6">
+                    <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-card px-2 text-muted-foreground">Or</span>
+                    </div>
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className={`pl-10 pr-10 ${errors.password ? 'border-destructive' : ''}`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
+                  <Button type="button" variant="outline" className="w-full" onClick={() => { window.location.href = 'http://localhost:8080/oauth2/authorization/google'; }}>
+                    <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+                      <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                      <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                      <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                      <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                    </svg>
+                    Continue with Google
+                  </Button>
+                </CardContent>
+              </motion.div>
+            )}
+
+            {/* ── Step 2: OTP ── */}
+            {step === 'otp' && (
+              <motion.div key="otp" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                <CardHeader className="space-y-1 text-center">
+                  <CardTitle className="font-display text-2xl">Check your email</CardTitle>
+                  <CardDescription>
+                    We sent a 6-digit code to <span className="font-medium text-foreground">{email}</span>
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleOtpSubmit} className="space-y-6">
+                    <div className="flex justify-center gap-2" onPaste={handleOtpPaste}>
+                      {otp.map((digit, i) => (
+                        <Input
+                          key={i}
+                          ref={(el) => { otpRefs.current[i] = el; }}
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={1}
+                          value={digit}
+                          onChange={(e) => handleOtpChange(i, e.target.value)}
+                          onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                          className="h-12 w-12 text-center text-lg font-semibold"
+                        />
+                      ))}
+                    </div>
+                    {error && <p className="text-center text-sm text-destructive">{error}</p>}
+                    <Button type="submit" className="w-full" disabled={isSubmitting}>
+                      {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Verifying...</> : 'Verify Code'}
+                    </Button>
+                  </form>
+                  <p className="mt-4 text-center text-sm text-muted-foreground">
+                    Didn't receive it?{' '}
+                    <button
+                      type="button"
+                      onClick={handleResend}
+                      disabled={resendCooldown > 0}
+                      className="text-primary hover:underline disabled:text-muted-foreground disabled:no-underline"
+                    >
+                      {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend code'}
+                    </button>
+                  </p>
+                </CardContent>
+                <CardFooter className="flex justify-center">
+                  <button type="button" onClick={() => setStep('email')} className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
+                    <ArrowLeft className="mr-1 h-4 w-4" /> Change email
                   </button>
-                </div>
-                {errors.password && (
-                  <p className="text-sm text-destructive">{errors.password}</p>
-                )}
-              </div>
+                </CardFooter>
+              </motion.div>
+            )}
 
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="confirmPassword"
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    placeholder="••••••••"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className={`pl-10 pr-10 ${errors.confirmPassword ? 'border-destructive' : ''}`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {showConfirmPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
-                {errors.confirmPassword && (
-                  <p className="text-sm text-destructive">{errors.confirmPassword}</p>
-                )}
-              </div>
+            {/* ── Step 3: Profile ── */}
+            {step === 'profile' && (
+              <motion.div key="profile" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                <CardHeader className="space-y-1 text-center">
+                  <CardTitle className="font-display text-2xl">Almost there!</CardTitle>
+                  <CardDescription>Set your name and password</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleProfileSubmit} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Full Name</Label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input id="name" type="text" placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} className="pl-10" autoFocus />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Password</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input id="password" type={showPassword ? 'text' : 'password'} placeholder="Min 8 characters" value={password} onChange={(e) => setPassword(e.target.value)} className="pl-10 pr-10" />
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword">Confirm Password</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input id="confirmPassword" type={showConfirmPassword ? 'text' : 'password'} placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="pl-10 pr-10" />
+                        <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                          {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+                    {error && <p className="text-sm text-destructive">{error}</p>}
+                    <Button type="submit" className="w-full" disabled={isSubmitting}>
+                      {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creating account...</> : 'Create Account'}
+                    </Button>
+                  </form>
+                </CardContent>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating account...
-                  </>
-                ) : (
-                  'Create Account'
-                )}
-              </Button>
-            </form>
-          </CardContent>
-          <CardFooter className="flex justify-center">
-            <p className="text-sm text-muted-foreground">
-              Already have an account?{' '}
-              <Link to="/login" className="text-primary font-medium hover:underline">
-                Sign in
-              </Link>
-            </p>
-          </CardFooter>
+          {step === 'email' && (
+            <CardFooter className="flex justify-center">
+              <p className="text-sm text-muted-foreground">
+                Already have an account?{' '}
+                <Link to="/login" className="text-primary font-medium hover:underline">Sign in</Link>
+              </p>
+            </CardFooter>
+          )}
         </Card>
       </motion.div>
     </div>

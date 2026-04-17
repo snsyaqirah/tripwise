@@ -23,6 +23,7 @@ export function TripCurrencyCard({ userCurrency, tripCurrency }: TripCurrencyCar
   const [convertFrom, setConvertFrom] = useState(tripCurrency || 'USD');
   const [convertedAmount, setConvertedAmount] = useState<number | null>(null);
   const [isConverting, setIsConverting] = useState(false);
+  const [rateError, setRateError] = useState(false);
 
   const userCurrencyInfo = currencies.find((c) => c.code === userCurrency);
 
@@ -35,15 +36,12 @@ export function TripCurrencyCard({ userCurrency, tripCurrency }: TripCurrencyCar
       }
 
       setIsConverting(true);
+      setRateError(false);
       try {
-        const result = await currencyService.convertCurrency(
-          amount,
-          convertFrom,
-          userCurrency
-        );
+        const result = await currencyService.convertCurrency(amount, convertFrom, userCurrency);
         setConvertedAmount(result);
-      } catch (error) {
-        console.error('Currency conversion failed:', error);
+      } catch {
+        setRateError(true);
         setConvertedAmount(null);
       } finally {
         setIsConverting(false);
@@ -111,12 +109,14 @@ export function TripCurrencyCard({ userCurrency, tripCurrency }: TripCurrencyCar
                   <span className="text-sm text-muted-foreground">=</span>
                   {isConverting ? (
                     <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  ) : rateError ? (
+                    <span className="text-xs text-muted-foreground">Rate unavailable</span>
                   ) : (
                     <div className="font-semibold text-lg text-primary">
                       {userCurrency} {convertedAmount?.toLocaleString(undefined, {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
-                      }) || '0.00'}
+                      }) ?? '—'}
                     </div>
                   )}
                 </div>

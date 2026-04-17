@@ -1,0 +1,78 @@
+spring:
+  application:
+    name: tripwise-backend
+
+  datasource:
+    url: jdbc:postgresql://ep-silent-pine-am5j4wxz-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require
+    username: neondb_owner
+    password: npg_4ua2bCViIZNK
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-timeout: 30000
+      maximum-pool-size: 5
+      minimum-idle: 1
+      keepalive-time: 60000
+      connection-test-query: SELECT 1
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    open-in-view: false
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: meraqira@gmail.com
+    password: equn czkt oodi ksjb
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: 517253158621-3mchckaja5ejk46q6enak02o81q6b0o9.apps.googleusercontent.com
+            client-secret: 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
+            scope:
+              - email
+              - profile
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+        provider:
+          google:
+            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+            token-uri: https://oauth2.googleapis.com/token
+            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+            user-name-attribute: sub
+
+server:
+  port: 8080
+  error:
+    include-message: always
+    include-binding-errors: always
+
+app:
+  jwt:
+    secret: tripwise-super-secret-key-change-in-production-min-256-bits-long-key
+    expiration: 86400000          # 24 hours
+    refresh-expiration: 604800000  # 7 days
+    verification-expiration: 300000 # 5 minutes (OTP step token)
+
+  cors:
+    allowed-origins: http://localhost:5173,http://localhost:8081,http://localhost:8082
+
+  frontend:
+    url: http://localhost:5173
+
+  email:
+    verification-expiry-minutes: 10
+    from: meraqira@gmail.com

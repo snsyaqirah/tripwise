@@ -1,7 +1,6 @@
 package com.tripwise.security;
 
 import com.tripwise.entity.User;
-import com.tripwise.service.AuthService;
 import com.tripwise.util.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -21,7 +20,6 @@ import java.io.IOException;
 public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
     private final JwtUtil jwtUtil;
-    private final AuthService authService;
 
     @Value("${app.frontend.url}")
     private String frontendUrl;

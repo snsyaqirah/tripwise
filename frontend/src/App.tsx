@@ -16,6 +16,7 @@ import Trips from "./pages/Trips";
 import TripDetail from "./pages/TripDetail";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
+import OAuthCallback from "./pages/OAuthCallback";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/auth/callback" element={<OAuthCallback />} />
 
             {/* Protected routes with layout */}
             <Route
