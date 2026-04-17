@@ -89,7 +89,7 @@ export function useTrips() {
       
       const updatedTrip = await tripService.updateTrip(input.id, requestData);
       setTrips((prev) =>
-        prev.map((trip) => (trip.id === id ? updatedTrip : trip))
+        prev.map((trip) => (String(trip.id) === String(input.id) ? updatedTrip : trip))
       );
       return updatedTrip;
     } catch (err: any) {

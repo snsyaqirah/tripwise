@@ -4,7 +4,6 @@ import { countries, currencies, seasons, getCountryByCode } from '@/data/countri
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   Select,
   SelectContent,
@@ -33,7 +32,7 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
-import { Loader2, Check, ChevronsUpDown } from 'lucide-react';
+import { Loader2, Check, ChevronsUpDown, User, Users, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface TripFormProps {
@@ -53,9 +52,31 @@ interface FormErrors {
 
 type CollaborationMode = 'solo' | 'separated' | 'combined';
 
+const TRIP_TYPES: { value: CollaborationMode; icon: React.ReactNode; title: string; description: string }[] = [
+  {
+    value: 'solo',
+    icon: <User className="h-4 w-4" />,
+    title: 'Solo Trip',
+    description: 'Just you, managing your own budget',
+  },
+  {
+    value: 'combined',
+    icon: <Wallet className="h-4 w-4" />,
+    title: 'Trip with Friends (Combined Budget)',
+    description: 'Share expenses from a common budget pool',
+  },
+  {
+    value: 'separated',
+    icon: <Users className="h-4 w-4" />,
+    title: 'Trip with Friends (Separated Budget)',
+    description: 'Each member tracks their own budget separately',
+  },
+];
+
 export function TripForm({ open, onOpenChange, trip, onSubmit }: TripFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [countryOpen, setCountryOpen] = useState(false);
   const [currencyOpen, setCurrencyOpen] = useState(false);
   const [collaborationMode, setCollaborationMode] = useState<CollaborationMode>('solo');
@@ -81,12 +102,11 @@ export function TripForm({ open, onOpenChange, trip, onSubmit }: TripFormProps) 
         destinationCountry: trip.destinationCountry,
         startDate: trip.startDate,
         endDate: trip.endDate,
-        totalBudget: trip.totalBudget,
-        budgetType: trip.budgetType || 'shared',
-        season: trip.season,
-        favoriteCurrency: trip.favoriteCurrency,
+        totalBudget: trip.budget,          // backend field is `budget`
+        budgetType: (trip.budgetType as 'solo' | 'shared' | 'separated') || 'solo',
+        season: null,                      // season not stored in backend
+        favoriteCurrency: trip.currency,   // backend field is `currency`
       });
-      // Determine collaboration mode from existing trip
       if (trip.budgetType === 'separated') {
         setCollaborationMode('separated');
       } else if (trip.budgetType === 'shared') {
@@ -108,6 +128,7 @@ export function TripForm({ open, onOpenChange, trip, onSubmit }: TripFormProps) 
       setCollaborationMode('solo');
     }
     setErrors({});
+    setSubmitError(null);
   }, [trip, open]);
 
   const validate = (): boolean => {
@@ -141,6 +162,7 @@ export function TripForm({ open, onOpenChange, trip, onSubmit }: TripFormProps) 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitError(null);
 
     if (!validate()) return;
 
@@ -148,8 +170,8 @@ export function TripForm({ open, onOpenChange, trip, onSubmit }: TripFormProps) 
     try {
       await onSubmit(formData);
       onOpenChange(false);
-    } catch (error) {
-      console.error('Failed to save trip:', error);
+    } catch (error: any) {
+      setSubmitError(error.message || 'Failed to save trip. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -193,48 +215,49 @@ export function TripForm({ open, onOpenChange, trip, onSubmit }: TripFormProps) 
 
         <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
           <div className="space-y-5 overflow-y-auto px-1 pr-4 max-h-[calc(90vh-180px)]">
-            {/* Collaboration Mode Selection */}
+            {/* Trip Type Selection - Card Style */}
             <div className="space-y-3 pb-5 border-b">
               <Label className="text-base font-semibold">Trip Type</Label>
-              <RadioGroup
-                value={collaborationMode}
-                onValueChange={(value) => handleCollaborationModeChange(value as CollaborationMode)}
-                className="space-y-2"
-              >
-                <div className="flex items-start space-x-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                  <RadioGroupItem value="solo" id="solo" className="mt-0.5" />
-                  <div className="flex-1">
-                    <Label htmlFor="solo" className="font-medium cursor-pointer">
-                      Solo Trip
-                    </Label>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Just you, managing your own budget
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                  <RadioGroupItem value="combined" id="combined" className="mt-0.5" />
-                  <div className="flex-1">
-                    <Label htmlFor="combined" className="font-medium cursor-pointer">
-                      Trip with Friends (Combined Budget)
-                    </Label>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Share expenses from a common budget pool
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                  <RadioGroupItem value="separated" id="separated" className="mt-0.5" />
-                  <div className="flex-1">
-                    <Label htmlFor="separated" className="font-medium cursor-pointer">
-                      Trip with Friends (Separated Budget)
-                    </Label>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Each member tracks their own budget separately
-                    </p>
-                  </div>
-                </div>
-              </RadioGroup>
+              <div className="grid grid-cols-1 gap-2">
+                {TRIP_TYPES.map((option) => {
+                  const selected = collaborationMode === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => handleCollaborationModeChange(option.value)}
+                      className={cn(
+                        'flex items-center gap-3 rounded-lg border-2 p-3 text-left transition-all',
+                        selected
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border hover:border-primary/40 hover:bg-muted/40'
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          'flex h-9 w-9 shrink-0 items-center justify-center rounded-full',
+                          selected
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted text-muted-foreground'
+                        )}
+                      >
+                        {option.icon}
+                      </div>
+                      <div className="min-w-0">
+                        <p className={cn('text-sm font-medium', selected && 'text-primary')}>
+                          {option.title}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {option.description}
+                        </p>
+                      </div>
+                      {selected && (
+                        <Check className="ml-auto h-4 w-4 shrink-0 text-primary" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
           <div className="space-y-2">
