@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Trip, CreateTripInput, Season } from '@/types';
 import { countries, currencies, seasons, getCountryByCode } from '@/data/countries';
 import { Button } from '@/components/ui/button';
@@ -364,52 +364,38 @@ export function TripForm({ open, onOpenChange, trip, onSubmit }: TripFormProps) 
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="budget">
-                {collaborationMode === 'solo' 
-                  ? 'Your Budget' 
-                  : collaborationMode === 'combined' 
-                  ? 'Shared Budget' 
-                  : 'Total Budget'}
-              </Label>
-              <Input
-                id="budget"
-                type="number"
-                min="1"
-                placeholder="5000"
-                value={formData.totalBudget || ''}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    totalBudget: parseFloat(e.target.value) || 0,
-                  }))
-                }
-                className={errors.totalBudget ? 'border-destructive' : ''}
-              />
-              {errors.totalBudget && (
-                <p className="text-sm text-destructive">{errors.totalBudget}</p>
-              )}
-              <p className="text-xs text-muted-foreground">
-                {collaborationMode === 'solo' 
-                  ? 'Your personal trip budget' 
-                  : collaborationMode === 'combined' 
-                  ? 'Pool budget shared by all members' 
-                  : 'Can be allocated to individual members later'}
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="budgetType">Budget Type</Label>
-              <div className="flex h-10 items-center px-3 rounded-md border border-input bg-muted">
-                <span className="text-sm">
-                  {formData.budgetType === 'solo' ? 'Solo' : formData.budgetType === 'shared' ? 'Shared' : 'Separated'}
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Auto-set based on trip type
-              </p>
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="budget">
+              {collaborationMode === 'solo'
+                ? 'Your Budget'
+                : collaborationMode === 'combined'
+                ? 'Shared Budget'
+                : 'Total Budget'}
+            </Label>
+            <Input
+              id="budget"
+              type="number"
+              min="1"
+              placeholder="5000"
+              value={formData.totalBudget || ''}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  totalBudget: parseFloat(e.target.value) || 0,
+                }))
+              }
+              className={errors.totalBudget ? 'border-destructive' : ''}
+            />
+            {errors.totalBudget && (
+              <p className="text-sm text-destructive">{errors.totalBudget}</p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              {collaborationMode === 'solo'
+                ? 'Your personal trip budget'
+                : collaborationMode === 'combined'
+                ? 'Pool budget shared by all members'
+                : 'Can be allocated to individual members later'}
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -495,7 +481,10 @@ export function TripForm({ open, onOpenChange, trip, onSubmit }: TripFormProps) 
           </div>
           </div>
 
-          <DialogFooter className="pt-4 mt-4 border-t">{/* Footer is outside scrollable area */}
+          <DialogFooter className="flex-col gap-2 pt-4 mt-4 border-t sm:flex-row sm:items-center">
+            {submitError && (
+              <p className="text-sm text-destructive sm:mr-auto">{submitError}</p>
+            )}
             <Button
               type="button"
               variant="outline"

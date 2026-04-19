@@ -21,8 +21,8 @@ export default function Dashboard() {
   const { user } = useAuth();
 
   // Calculate totals across all trips
-  const totalBudget = trips.reduce((sum, t) => sum + t.totalBudget, 0);
-  const totalSpent = trips.reduce((sum, t) => sum + t.spentAmount, 0);
+  const totalBudget = trips.reduce((sum, t) => sum + (t.budget || 0), 0);
+  const totalSpent = trips.reduce((sum, t) => sum + Number(t.totalExpenses || 0), 0);
   const totalRemaining = totalBudget - totalSpent;
 
   // Trip stats
@@ -257,10 +257,10 @@ export default function Dashboard() {
               <div className="space-y-4">
                 {trips.slice(0, 3).map((trip) => {
                   const country = getCountryByCode(trip.destinationCountry);
-                  const spentAmount = trip.spentAmount || 0;
-                  const totalBudget = trip.totalBudget || trip.budget || 0;
-                  const spentPercentage = totalBudget > 0
-                    ? (spentAmount / totalBudget) * 100
+                  const spentAmount = Number(trip.totalExpenses || 0);
+                  const tripBudget = Number(trip.budget || 0);
+                  const spentPercentage = tripBudget > 0
+                    ? (spentAmount / tripBudget) * 100
                     : 0;
 
                   return (
@@ -280,12 +280,12 @@ export default function Dashboard() {
                       </div>
                       <div className="text-right">
                         <p className="font-semibold">
-                          {getCurrencySymbol(trip.favoriteCurrency)}
+                          {getCurrencySymbol(trip.currency)}
                           {spentAmount.toLocaleString()}
                           <span className="text-muted-foreground font-normal">
                             {' '}
-                            / {getCurrencySymbol(trip.favoriteCurrency)}
-                            {totalBudget.toLocaleString()}
+                            / {getCurrencySymbol(trip.currency)}
+                            {tripBudget.toLocaleString()}
                           </span>
                         </p>
                         <div className="w-24 h-1.5 rounded-full bg-muted mt-1 overflow-hidden">
