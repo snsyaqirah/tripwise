@@ -10,9 +10,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-/**
- * Expense entity representing the expenses table in database
- */
 @Entity
 @Table(name = "expenses")
 @Data
@@ -37,24 +34,38 @@ public class Expense {
     @JoinColumn(name = "added_by", insertable = false, updatable = false)
     private User addedByUser;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String description;
 
     @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal amount;
 
+    @Column(name = "original_amount", nullable = false, precision = 15, scale = 2)
+    @Builder.Default
+    private BigDecimal originalAmount = BigDecimal.ZERO;
+
+    @Column(name = "original_currency", nullable = false, length = 3)
+    @Builder.Default
+    private String originalCurrency = "USD";
+
+    @Column(name = "converted_amount", nullable = false, precision = 15, scale = 2)
+    @Builder.Default
+    private BigDecimal convertedAmount = BigDecimal.ZERO;
+
     @Column(nullable = false, length = 3)
     private String currency;
+
+    // DB column is named "date", not "expense_date"
+    @Column(name = "date", nullable = false)
+    private LocalDate expenseDate;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
     private ExpenseCategory category;
 
-    @Column(name = "expense_date", nullable = false)
-    private LocalDate expenseDate;
-
-    @Column(columnDefinition = "TEXT")
-    private String notes;
+    @Column(name = "is_deleted")
+    @Builder.Default
+    private Boolean isDeleted = false;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -74,11 +85,11 @@ public class Expense {
     }
 
     public enum ExpenseCategory {
-        ACCOMMODATION,
-        FOOD,
-        TRANSPORTATION,
-        ACTIVITIES,
-        SHOPPING,
-        OTHER
+        accommodation,
+        transportation,
+        food,
+        activities,
+        shopping,
+        other
     }
 }

@@ -6,7 +6,7 @@ export interface CreateExpenseRequest {
   description: string;
   amount: number;
   currency: string;
-  category: 'ACCOMMODATION' | 'FOOD' | 'TRANSPORTATION' | 'ACTIVITIES' | 'SHOPPING' | 'OTHER';
+  category: 'accommodation' | 'food' | 'transportation' | 'activities' | 'shopping' | 'other';
   expenseDate: string;
   notes?: string;
 }

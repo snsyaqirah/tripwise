@@ -42,7 +42,6 @@ public class ExpenseService {
                 .currency(request.getCurrency())
                 .category(request.getCategory())
                 .expenseDate(request.getExpenseDate())
-                .notes(request.getNotes())
                 .build();
 
         expense = expenseRepository.save(expense);
@@ -98,7 +97,6 @@ public class ExpenseService {
                 .currency(expense.getCurrency())
                 .category(expense.getCategory())
                 .expenseDate(expense.getExpenseDate())
-                .notes(expense.getNotes())
                 .createdAt(expense.getCreatedAt())
                 .updatedAt(expense.getUpdatedAt())
                 .build();

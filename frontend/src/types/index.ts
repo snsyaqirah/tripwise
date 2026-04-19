@@ -106,12 +106,12 @@ export interface UpdateTripInput extends Partial<CreateTripInput> {
 
 // Expense types
 export type ExpenseCategory =
-  | 'ACCOMMODATION'
-  | 'TRANSPORTATION'
-  | 'FOOD'
-  | 'ACTIVITIES'
-  | 'SHOPPING'
-  | 'OTHER';
+  | 'accommodation'
+  | 'transportation'
+  | 'food'
+  | 'activities'
+  | 'shopping'
+  | 'other';
 
 export interface Expense {
   id: string;
