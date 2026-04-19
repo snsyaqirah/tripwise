@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Trip, CreateTripInput, Season } from '@/types';
 import { countries, currencies, seasons, getCountryByCode } from '@/data/countries';
+import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -74,6 +75,7 @@ const TRIP_TYPES: { value: CollaborationMode; icon: React.ReactNode; title: stri
 ];
 
 export function TripForm({ open, onOpenChange, trip, onSubmit }: TripFormProps) {
+  const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -364,6 +366,7 @@ export function TripForm({ open, onOpenChange, trip, onSubmit }: TripFormProps) 
             </div>
           </div>
 
+          {/* Budget + inline currency */}
           <div className="space-y-2">
             <Label htmlFor="budget">
               {collaborationMode === 'solo'
@@ -372,20 +375,100 @@ export function TripForm({ open, onOpenChange, trip, onSubmit }: TripFormProps) 
                 ? 'Shared Budget'
                 : 'Total Budget'}
             </Label>
-            <Input
-              id="budget"
-              type="number"
-              min="1"
-              placeholder="5000"
-              value={formData.totalBudget || ''}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  totalBudget: parseFloat(e.target.value) || 0,
-                }))
-              }
-              className={errors.totalBudget ? 'border-destructive' : ''}
-            />
+
+            {/* Quick-switch pills: My currency vs Destination currency */}
+            {user?.currency && formData.destinationCountry && (() => {
+              const destCurrency = getCountryByCode(formData.destinationCountry)?.currency;
+              if (!destCurrency || destCurrency === user.currency) return null;
+              return (
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFormData((prev) => ({ ...prev, favoriteCurrency: user.currency! }))}
+                    className={cn(
+                      'rounded-full border px-3 py-0.5 text-xs font-medium transition-colors',
+                      formData.favoriteCurrency === user.currency
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-border text-muted-foreground hover:border-primary/50'
+                    )}
+                  >
+                    My currency ({user.currency})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData((prev) => ({ ...prev, favoriteCurrency: destCurrency }))}
+                    className={cn(
+                      'rounded-full border px-3 py-0.5 text-xs font-medium transition-colors',
+                      formData.favoriteCurrency === destCurrency
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-border text-muted-foreground hover:border-primary/50'
+                    )}
+                  >
+                    Destination ({destCurrency})
+                  </button>
+                </div>
+              );
+            })()}
+
+            {/* Budget input + currency selector side by side */}
+            <div className="flex gap-2">
+              <Input
+                id="budget"
+                type="number"
+                min="1"
+                placeholder="5000"
+                value={formData.totalBudget || ''}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    totalBudget: parseFloat(e.target.value) || 0,
+                  }))
+                }
+                className={cn('flex-1', errors.totalBudget ? 'border-destructive' : '')}
+              />
+              <Popover open={currencyOpen} onOpenChange={setCurrencyOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    role="combobox"
+                    className="w-28 shrink-0 justify-between font-mono"
+                  >
+                    {formData.favoriteCurrency || 'USD'}
+                    <ChevronsUpDown className="ml-1 h-3 w-3 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[280px] p-0" align="end">
+                  <Command>
+                    <CommandInput placeholder="Search currency..." />
+                    <CommandList>
+                      <CommandEmpty>No currency found.</CommandEmpty>
+                      <CommandGroup>
+                        {currencies.map((currency) => (
+                          <CommandItem
+                            key={currency.code}
+                            value={`${currency.code} ${currency.name}`}
+                            onSelect={() => {
+                              setFormData((prev) => ({ ...prev, favoriteCurrency: currency.code }));
+                              setCurrencyOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                'mr-2 h-4 w-4',
+                                formData.favoriteCurrency === currency.code ? 'opacity-100' : 'opacity-0'
+                              )}
+                            />
+                            {currency.symbol} {currency.code} — {currency.name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+
             {errors.totalBudget && (
               <p className="text-sm text-destructive">{errors.totalBudget}</p>
             )}
@@ -396,57 +479,6 @@ export function TripForm({ open, onOpenChange, trip, onSubmit }: TripFormProps) 
                 ? 'Pool budget shared by all members'
                 : 'Can be allocated to individual members later'}
             </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="currency">Currency</Label>
-            <p className="text-xs text-muted-foreground">Auto-filled, click to change</p>
-            <Popover open={currencyOpen} onOpenChange={setCurrencyOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={currencyOpen}
-                  className="w-full justify-between"
-                >
-                  {formData.favoriteCurrency
-                    ? (() => {
-                        const currency = currencies.find((c) => c.code === formData.favoriteCurrency);
-                        return currency ? `${currency.symbol} ${currency.code}` : formData.favoriteCurrency;
-                      })()
-                    : "Select currency"}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[300px] p-0" align="start">
-                <Command>
-                  <CommandInput placeholder="Search currency..." />
-                  <CommandList>
-                    <CommandEmpty>No currency found.</CommandEmpty>
-                    <CommandGroup>
-                      {currencies.map((currency) => (
-                        <CommandItem
-                          key={currency.code}
-                          value={`${currency.code} ${currency.name}`}
-                          onSelect={() => {
-                            setFormData((prev) => ({ ...prev, favoriteCurrency: currency.code }));
-                            setCurrencyOpen(false);
-                          }}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              formData.favoriteCurrency === currency.code ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          {currency.symbol} {currency.code}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
           </div>
 
           {/* Conditional Season Selector */}

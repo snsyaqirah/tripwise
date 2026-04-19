@@ -38,7 +38,7 @@ export function useTrips() {
         endDate: input.endDate,
         budget: input.totalBudget || input.budget,
         currency: input.favoriteCurrency || input.currency,
-        budgetType: input.budgetType || 'per_person',
+        budgetType: input.budgetType || 'solo',
         description: input.description,
         image: input.image,
         notes: input.notes,

@@ -98,7 +98,7 @@ CREATE TABLE trips (
     start_date          DATE         NOT NULL,
     end_date            DATE         NOT NULL,
 
-    budget_type     VARCHAR(20)     DEFAULT 'shared',
+    budget_type     VARCHAR(20)     DEFAULT 'solo',
     total_budget    DECIMAL(12, 2)  NOT NULL,
     spent_amount    DECIMAL(12, 2)  DEFAULT 0.00,
     remaining_budget DECIMAL(12, 2) GENERATED ALWAYS AS (total_budget - spent_amount) STORED,
@@ -116,7 +116,7 @@ CREATE TABLE trips (
     FOREIGN KEY (owner_id) REFERENCES users(user_id) ON DELETE CASCADE,
     CONSTRAINT chk_trips_dates       CHECK (end_date >= start_date),
     CONSTRAINT chk_trips_budget      CHECK (total_budget > 0),
-    CONSTRAINT chk_trips_budget_type CHECK (budget_type IN ('shared', 'separated')),
+    CONSTRAINT chk_trips_budget_type CHECK (budget_type IN ('solo', 'shared', 'separated')),
     CONSTRAINT chk_trips_status      CHECK (status IN ('PLANNED', 'ONGOING', 'COMPLETED'))
 );
 

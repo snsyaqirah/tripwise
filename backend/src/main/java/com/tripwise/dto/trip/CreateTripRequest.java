@@ -36,7 +36,7 @@ public class CreateTripRequest {
     @Size(min = 3, max = 3, message = "Currency code must be 3 characters")
     private String currency;
     
-    private String budgetType = "per_person";
+    private String budgetType = "solo";
     
     private String notes;
     
