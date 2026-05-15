@@ -49,17 +49,17 @@ export function MemberList({
         >
           <div className="flex items-center gap-3">
             <Avatar>
-              <AvatarImage src={member.user.avatar} />
-              <AvatarFallback>{member.user.name[0]}</AvatarFallback>
+              <AvatarImage src={member.avatar} />
+              <AvatarFallback>{member.name?.[0] ?? '?'}</AvatarFallback>
             </Avatar>
             <div>
               <p className="font-medium">
-                {member.user.name}
+                {member.name}
                 {member.userId === currentUserId && (
                   <span className="text-muted-foreground text-sm ml-2">(You)</span>
                 )}
               </p>
-              <p className="text-sm text-muted-foreground">{member.user.email}</p>
+              <p className="text-sm text-muted-foreground">{member.email}</p>
             </div>
           </div>
 

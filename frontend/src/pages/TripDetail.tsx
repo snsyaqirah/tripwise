@@ -16,7 +16,6 @@ import { PackingList } from '@/components/packing/PackingList';
 import { TripItinerary } from '@/components/itinerary/TripItinerary';
 import { ActivityFeed } from '@/components/activity/ActivityFeed';
 import { SettlementSummary } from '@/components/settlement/SettlementSummary';
-import { CurrencyConverter } from '@/components/currency/CurrencyConverter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -46,7 +45,6 @@ import {
   CalendarDays,
   Activity,
   Users,
-  ArrowLeftRight,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
@@ -228,9 +226,9 @@ export default function TripDetail() {
               tripName={trip.name}
               collaborators={(trip.members ?? []).map((m) => ({
                 id: String(m.id),
-                name: m.user?.name ?? '',
-                email: m.user?.email ?? '',
-                avatar: m.user?.avatar,
+                name: m.name ?? '',
+                email: m.email ?? '',
+                avatar: m.avatar,
                 role: m.role,
               }))}
             />
@@ -374,14 +372,6 @@ export default function TripDetail() {
               <BarChart3 className="h-4 w-4 hidden sm:inline" />
               Charts
             </TabsTrigger>
-            <TabsTrigger value="categories" className="gap-2">
-              <Coins className="h-4 w-4 hidden sm:inline" />
-              Categories
-            </TabsTrigger>
-            <TabsTrigger value="converter" className="gap-2">
-              <ArrowLeftRight className="h-4 w-4 hidden sm:inline" />
-              Converter
-            </TabsTrigger>
             <TabsTrigger value="activity" className="gap-2">
               <Activity className="h-4 w-4 hidden sm:inline" />
               Activity
@@ -437,78 +427,61 @@ export default function TripDetail() {
         </TabsContent>
 
         <TabsContent value="charts">
-          <BentoCharts
-            expenses={expenses}
-            totalBudget={trip.budget}
-            currency={trip.currency}
-            startDate={trip.startDate}
-            endDate={trip.endDate}
-          />
-        </TabsContent>
-
-        <TabsContent value="categories">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-display text-lg">
-                  Spending by Category
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {Object.keys(categoryTotals).length > 0 ? (
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {expenseCategories.map((cat) => {
-                      const amount = categoryTotals[cat.value as keyof typeof categoryTotals] || 0;
-                      if (amount === 0) return null;
-                      const percentage = (amount / totalSpent) * 100;
-
-                      return (
-                        <div
-                          key={cat.value}
-                          className="flex items-center gap-3 p-4 rounded-lg bg-muted/50"
-                        >
-                          <div
-                            className="flex h-12 w-12 items-center justify-center rounded-lg text-xl"
-                            style={{ backgroundColor: `${cat.color}20` }}
-                          >
-                            {cat.icon}
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex justify-between items-center">
-                              <span className="font-medium">{cat.label}</span>
-                              <span className="font-semibold">
-                                {currencySymbol}
-                                {amount.toLocaleString()}
-                              </span>
+          <div className="space-y-6">
+            <BentoCharts
+              expenses={expenses}
+              totalBudget={trip.budget}
+              currency={trip.currency}
+              startDate={trip.startDate}
+              endDate={trip.endDate}
+            />
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="font-display text-lg flex items-center gap-2">
+                    <Coins className="h-5 w-5" />
+                    Spending by Category
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {Object.keys(categoryTotals).length > 0 ? (
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                      {expenseCategories.map((cat) => {
+                        const amount = categoryTotals[cat.value as keyof typeof categoryTotals] || 0;
+                        if (amount === 0) return null;
+                        const percentage = (amount / totalSpent) * 100;
+                        return (
+                          <div key={cat.value} className="flex items-center gap-3 p-4 rounded-lg bg-muted/50">
+                            <div
+                              className="flex h-12 w-12 items-center justify-center rounded-lg text-xl"
+                              style={{ backgroundColor: `${cat.color}20` }}
+                            >
+                              {cat.icon}
                             </div>
-                            <div className="mt-2 h-2 rounded-full bg-muted overflow-hidden">
-                              <div
-                                className="h-full rounded-full transition-all"
-                                style={{
-                                  width: `${percentage}%`,
-                                  backgroundColor: cat.color,
-                                }}
-                              />
+                            <div className="flex-1">
+                              <div className="flex justify-between items-center">
+                                <span className="font-medium">{cat.label}</span>
+                                <span className="font-semibold">{currencySymbol}{amount.toLocaleString()}</span>
+                              </div>
+                              <div className="mt-2 h-2 rounded-full bg-muted overflow-hidden">
+                                <div
+                                  className="h-full rounded-full transition-all"
+                                  style={{ width: `${percentage}%`, backgroundColor: cat.color }}
+                                />
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-1">{percentage.toFixed(1)}% of total</p>
                             </div>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {percentage.toFixed(1)}% of total
-                            </p>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No expenses recorded yet.
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">No expenses recorded yet.</div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+          </div>
         </TabsContent>
 
         <TabsContent value="itinerary">
@@ -530,19 +503,6 @@ export default function TripDetail() {
             <Card>
               <CardContent className="pt-6">
                 <PackingList tripId={tripId!} />
-              </CardContent>
-            </Card>
-          </motion.div>
-        </TabsContent>
-
-        <TabsContent value="converter">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-display text-lg">Currency Converter</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CurrencyConverter defaultFrom={trip.currency} />
               </CardContent>
             </Card>
           </motion.div>

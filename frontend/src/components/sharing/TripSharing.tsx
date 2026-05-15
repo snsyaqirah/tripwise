@@ -256,7 +256,9 @@ export function TripSharing({
                       <Avatar className="h-8 w-8">
                         <AvatarImage src={collaborator.avatar} />
                         <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                          {collaborator.name.split(' ').map((n) => n[0]).join('')}
+                          {collaborator.name
+                            ? collaborator.name.split(' ').filter(Boolean).map((n) => n[0]).join('').toUpperCase()
+                            : collaborator.email?.[0]?.toUpperCase() ?? '?'}
                         </AvatarFallback>
                       </Avatar>
                       <div>

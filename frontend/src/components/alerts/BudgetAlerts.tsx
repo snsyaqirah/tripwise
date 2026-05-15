@@ -167,22 +167,24 @@ export function BudgetAlerts({
           >
             <Alert className={getAlertClass(alert.type)}>
               {getAlertIcon(alert.type)}
-              <div className="flex-1">
-                <AlertTitle className="font-semibold">{alert.title}</AlertTitle>
-                <AlertDescription className="mt-1">
-                  {alert.message}
-                </AlertDescription>
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <AlertTitle className="font-semibold">{alert.title}</AlertTitle>
+                  <AlertDescription className="mt-1">
+                    {alert.message}
+                  </AlertDescription>
+                </div>
+                {onDismiss && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 shrink-0 -mt-0.5"
+                    onClick={() => onDismiss(alert.id)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
               </div>
-              {onDismiss && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 absolute top-2 right-2"
-                  onClick={() => onDismiss(alert.id)}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              )}
             </Alert>
           </motion.div>
         ))}

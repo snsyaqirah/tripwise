@@ -73,7 +73,7 @@ export function BentoCharts({
     return days.map((day) => {
       const dayKey = format(day, 'yyyy-MM-dd');
       const dayTotal = expenses
-        .filter((e) => format(parseISO(e.date), 'yyyy-MM-dd') === dayKey)
+        .filter((e) => format(parseISO(e.expenseDate), 'yyyy-MM-dd') === dayKey)
         .reduce((sum, e) => sum + e.amount, 0);
       cumulative += dayTotal;
       return { 

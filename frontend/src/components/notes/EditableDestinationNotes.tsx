@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -55,10 +55,6 @@ interface EditableDestinationNotesProps {
   tripId: string;
   destinationCountry: string;
   destinationName: string;
-  notes?: DestinationNote[];
-  onAddNote?: (note: Omit<DestinationNote, 'id' | 'createdAt'>) => void;
-  onEditNote?: (note: DestinationNote) => void;
-  onDeleteNote?: (noteId: string) => void;
 }
 
 const categoryConfig = {
@@ -83,10 +79,6 @@ export function EditableDestinationNotes({
   tripId,
   destinationCountry,
   destinationName,
-  notes = [],
-  onAddNote,
-  onEditNote,
-  onDeleteNote,
 }: EditableDestinationNotesProps) {
   const { toast } = useToast();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -97,28 +89,37 @@ export function EditableDestinationNotes({
     content: '',
   });
 
-  // Editable destination info
-  const [destInfo, setDestInfo] = useState<DestinationInfo>(getDefaultDestinationInfo());
+  const notesKey = `travelluhh_notes_${tripId}`;
+  const infoKey = `travelluhh_destinfo_${tripId}`;
+
+  const [displayNotes, setDisplayNotes] = useState<DestinationNote[]>(() => {
+    try {
+      const stored = localStorage.getItem(notesKey);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [destInfo, setDestInfo] = useState<DestinationInfo>(() => {
+    try {
+      const stored = localStorage.getItem(infoKey);
+      return stored ? JSON.parse(stored) : getDefaultDestinationInfo();
+    } catch {
+      return getDefaultDestinationInfo();
+    }
+  });
+
   const [editingField, setEditingField] = useState<keyof DestinationInfo | null>(null);
   const [editValue, setEditValue] = useState('');
 
-  // Mock notes for demo
-  const displayNotes: DestinationNote[] = notes.length > 0 ? notes : [
-    {
-      id: '1',
-      category: 'local_tips',
-      title: 'Bargaining at markets',
-      content: 'Most markets expect bargaining. Start at 50% of asking price and negotiate from there.',
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: '2',
-      category: 'food',
-      title: 'Best street food areas',
-      content: 'Look for stalls with long queues - usually a good sign of quality!',
-      createdAt: new Date().toISOString(),
-    },
-  ];
+  useEffect(() => {
+    localStorage.setItem(notesKey, JSON.stringify(displayNotes));
+  }, [displayNotes, notesKey]);
+
+  useEffect(() => {
+    localStorage.setItem(infoKey, JSON.stringify(destInfo));
+  }, [destInfo, infoKey]);
 
   const handleAddNote = () => {
     if (!newNote.title.trim() || !newNote.content.trim()) {
@@ -130,9 +131,12 @@ export function EditableDestinationNotes({
       return;
     }
 
-    if (onAddNote) {
-      onAddNote(newNote);
-    }
+    const note: DestinationNote = {
+      id: Date.now().toString(),
+      ...newNote,
+      createdAt: new Date().toISOString(),
+    };
+    setDisplayNotes((prev) => [...prev, note]);
 
     toast({
       title: 'Note added!',
@@ -143,9 +147,7 @@ export function EditableDestinationNotes({
   };
 
   const handleDeleteNote = (noteId: string) => {
-    if (onDeleteNote) {
-      onDeleteNote(noteId);
-    }
+    setDisplayNotes((prev) => prev.filter((n) => n.id !== noteId));
     toast({
       title: 'Note deleted',
       description: 'The note has been removed.',

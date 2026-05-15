@@ -72,14 +72,10 @@ export interface TripMember {
   id: string;
   tripId: string;
   userId: string;
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    avatar?: string;
-  };
+  name: string;
+  email: string;
+  avatar?: string;
   role: 'owner' | 'editor' | 'viewer';
-  status: number;
   joinedAt: string;
 }
 
