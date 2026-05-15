@@ -192,7 +192,7 @@ Full endpoint table with request/response shapes → [DOCS.md § API Endpoints R
 
 ## Author
 
-**Siti Nur Syaqirah** · [@snsyaqirah](https://github.com/snsyaqirah)
+**Siti Nursyaqirah** · [@snsyaqirah](https://github.com/snsyaqirah)
 
 ---
 
