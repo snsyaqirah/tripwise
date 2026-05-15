@@ -97,7 +97,6 @@ public class AuthService {
         user.setName(request.getName());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setEmailVerified(true);
-        user.setIsDeleted(false);
         user.setOnboardingCompleted(false);
 
         user = userRepository.save(user);
