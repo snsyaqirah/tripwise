@@ -12,6 +12,11 @@ import { BudgetAlerts } from '@/components/alerts/BudgetAlerts';
 import { TripSharing } from '@/components/sharing/TripSharing';
 import { EditableDestinationNotes } from '@/components/notes/EditableDestinationNotes';
 import { ExportMenu } from '@/components/export/ExportMenu';
+import { PackingList } from '@/components/packing/PackingList';
+import { TripItinerary } from '@/components/itinerary/TripItinerary';
+import { ActivityFeed } from '@/components/activity/ActivityFeed';
+import { SettlementSummary } from '@/components/settlement/SettlementSummary';
+import { CurrencyConverter } from '@/components/currency/CurrencyConverter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -37,6 +42,11 @@ import {
   BarChart3,
   FileText,
   Coins,
+  ListChecks,
+  CalendarDays,
+  Activity,
+  Users,
+  ArrowLeftRight,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
@@ -50,7 +60,6 @@ export default function TripDetail() {
     expenses,
     isLoading,
     createExpense,
-    updateExpense,
     deleteExpense,
     getTotalByCategory,
     getTotalSpent,
@@ -138,20 +147,11 @@ export default function TripDetail() {
 
   const handleUpdateExpense = async (data: CreateExpenseInput) => {
     if (!editingExpense) return;
-    try {
-      await updateExpense({ ...data, id: editingExpense.id });
-      toast({
-        title: 'Expense updated!',
-        description: 'Your changes have been saved.',
-      });
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Failed to update expense',
-        description: 'Something went wrong. Please try again.',
-      });
-      throw error;
-    }
+    toast({
+      variant: 'destructive',
+      title: 'Edit not supported yet',
+      description: 'Please delete and re-add the expense.',
+    });
   };
 
   const handleEditClick = (expense: Expense) => {
@@ -223,7 +223,17 @@ export default function TripDetail() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <TripSharing tripId={tripId!} tripName={trip.name} />
+            <TripSharing
+              tripId={tripId!}
+              tripName={trip.name}
+              collaborators={(trip.members ?? []).map((m) => ({
+                id: String(m.id),
+                name: m.user?.name ?? '',
+                email: m.user?.email ?? '',
+                avatar: m.user?.avatar,
+                role: m.role,
+              }))}
+            />
             <ExportMenu trip={trip} expenses={expenses} />
             <Button onClick={() => setFormOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
@@ -346,24 +356,48 @@ export default function TripDetail() {
 
       {/* Tabbed Content */}
       <Tabs defaultValue="expenses" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
-          <TabsTrigger value="expenses" className="gap-2">
-            <FileText className="h-4 w-4 hidden sm:inline" />
-            Expenses
-          </TabsTrigger>
-          <TabsTrigger value="charts" className="gap-2">
-            <BarChart3 className="h-4 w-4 hidden sm:inline" />
-            Charts
-          </TabsTrigger>
-          <TabsTrigger value="categories" className="gap-2">
-            <Coins className="h-4 w-4 hidden sm:inline" />
-            Categories
-          </TabsTrigger>
-          <TabsTrigger value="notes" className="gap-2">
-            <MapPin className="h-4 w-4 hidden sm:inline" />
-            Notes
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto pb-1">
+          <TabsList className="inline-flex w-max min-w-full sm:min-w-0">
+            <TabsTrigger value="expenses" className="gap-2">
+              <FileText className="h-4 w-4 hidden sm:inline" />
+              Expenses
+            </TabsTrigger>
+            <TabsTrigger value="itinerary" className="gap-2">
+              <CalendarDays className="h-4 w-4 hidden sm:inline" />
+              Itinerary
+            </TabsTrigger>
+            <TabsTrigger value="packing" className="gap-2">
+              <ListChecks className="h-4 w-4 hidden sm:inline" />
+              Packing
+            </TabsTrigger>
+            <TabsTrigger value="charts" className="gap-2">
+              <BarChart3 className="h-4 w-4 hidden sm:inline" />
+              Charts
+            </TabsTrigger>
+            <TabsTrigger value="categories" className="gap-2">
+              <Coins className="h-4 w-4 hidden sm:inline" />
+              Categories
+            </TabsTrigger>
+            <TabsTrigger value="converter" className="gap-2">
+              <ArrowLeftRight className="h-4 w-4 hidden sm:inline" />
+              Converter
+            </TabsTrigger>
+            <TabsTrigger value="activity" className="gap-2">
+              <Activity className="h-4 w-4 hidden sm:inline" />
+              Activity
+            </TabsTrigger>
+            {(trip.budgetType === 'shared' || trip.budgetType === 'separated') && (
+              <TabsTrigger value="settlement" className="gap-2">
+                <Users className="h-4 w-4 hidden sm:inline" />
+                Settle Up
+              </TabsTrigger>
+            )}
+            <TabsTrigger value="notes" className="gap-2">
+              <MapPin className="h-4 w-4 hidden sm:inline" />
+              Notes
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="expenses">
           <motion.div
@@ -476,6 +510,64 @@ export default function TripDetail() {
             </Card>
           </motion.div>
         </TabsContent>
+
+        <TabsContent value="itinerary">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <Card>
+              <CardContent className="pt-6">
+                <TripItinerary
+                  tripId={tripId!}
+                  startDate={trip.startDate}
+                  endDate={trip.endDate}
+                />
+              </CardContent>
+            </Card>
+          </motion.div>
+        </TabsContent>
+
+        <TabsContent value="packing">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <Card>
+              <CardContent className="pt-6">
+                <PackingList tripId={tripId!} />
+              </CardContent>
+            </Card>
+          </motion.div>
+        </TabsContent>
+
+        <TabsContent value="converter">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-display text-lg">Currency Converter</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CurrencyConverter defaultFrom={trip.currency} />
+              </CardContent>
+            </Card>
+          </motion.div>
+        </TabsContent>
+
+        <TabsContent value="activity">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-display text-lg">Activity Feed</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ActivityFeed tripId={tripId!} />
+              </CardContent>
+            </Card>
+          </motion.div>
+        </TabsContent>
+
+        {(trip.budgetType === 'shared' || trip.budgetType === 'separated') && (
+          <TabsContent value="settlement">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+              <SettlementSummary tripId={tripId!} currency={trip.currency} />
+            </motion.div>
+          </TabsContent>
+        )}
 
         <TabsContent value="notes">
           <EditableDestinationNotes

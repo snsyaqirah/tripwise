@@ -35,9 +35,6 @@ CREATE TABLE users (
     currency        VARCHAR(3)   DEFAULT 'USD',          -- ISO-4217
     onboarding_completed BOOLEAN DEFAULT false,
 
-    -- Soft delete
-    is_deleted      BOOLEAN DEFAULT false,
-
     -- Timestamps
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -47,7 +44,6 @@ CREATE TABLE users (
 
 CREATE INDEX idx_users_email       ON users(email);
 CREATE INDEX idx_users_google_id   ON users(google_id);
-CREATE INDEX idx_users_is_deleted  ON users(is_deleted);
 
 -- ============================================
 -- 2. EMAIL VERIFICATION CODES TABLE
@@ -132,7 +128,6 @@ CREATE TABLE trip_members (
     trip_id     BIGINT      NOT NULL,
     user_id     BIGINT      NOT NULL,
     role        VARCHAR(20) DEFAULT 'editor',
-    is_deleted  BOOLEAN     DEFAULT false,
     joined_at   TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
     created_at  TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
@@ -143,9 +138,8 @@ CREATE TABLE trip_members (
     CONSTRAINT chk_trip_members_role CHECK (role IN ('owner', 'editor', 'viewer'))
 );
 
-CREATE INDEX idx_trip_members_trip       ON trip_members(trip_id);
-CREATE INDEX idx_trip_members_user       ON trip_members(user_id);
-CREATE INDEX idx_trip_members_is_deleted ON trip_members(is_deleted);
+CREATE INDEX idx_trip_members_trip ON trip_members(trip_id);
+CREATE INDEX idx_trip_members_user ON trip_members(user_id);
 
 -- ============================================
 -- 6. TRIP_MEMBER_BUDGETS TABLE (separated budget)
@@ -157,7 +151,6 @@ CREATE TABLE trip_member_budgets (
     allocated_budget DECIMAL(12, 2) NOT NULL,
     spent_amount     DECIMAL(12, 2) DEFAULT 0.00,
     remaining_budget DECIMAL(12, 2) GENERATED ALWAYS AS (allocated_budget - spent_amount) STORED,
-    is_deleted       BOOLEAN        DEFAULT false,
     created_at       TIMESTAMP      DEFAULT CURRENT_TIMESTAMP,
     updated_at       TIMESTAMP      DEFAULT CURRENT_TIMESTAMP,
 
@@ -167,9 +160,8 @@ CREATE TABLE trip_member_budgets (
     CONSTRAINT chk_tmb_allocated CHECK (allocated_budget > 0)
 );
 
-CREATE INDEX idx_tmb_trip       ON trip_member_budgets(trip_id);
-CREATE INDEX idx_tmb_user       ON trip_member_budgets(user_id);
-CREATE INDEX idx_tmb_is_deleted ON trip_member_budgets(is_deleted);
+CREATE INDEX idx_tmb_trip ON trip_member_budgets(trip_id);
+CREATE INDEX idx_tmb_user ON trip_member_budgets(user_id);
 
 -- ============================================
 -- 7. EXPENSES TABLE
@@ -186,26 +178,101 @@ CREATE TABLE expenses (
     currency          VARCHAR(3)     NOT NULL,
     date              DATE           NOT NULL,
     description       TEXT,
-    is_deleted        BOOLEAN        DEFAULT false,
     created_at        TIMESTAMP      DEFAULT CURRENT_TIMESTAMP,
     updated_at        TIMESTAMP      DEFAULT CURRENT_TIMESTAMP,
 
     FOREIGN KEY (trip_id)   REFERENCES trips(trip_id)  ON DELETE CASCADE,
     FOREIGN KEY (added_by)  REFERENCES users(user_id)  ON DELETE SET NULL,
     CONSTRAINT chk_expenses_category CHECK (category IN (
-        'accommodation', 'transportation', 'food', 'activities', 'shopping', 'other'
+        'accommodation', 'transportation', 'food', 'activities', 'shopping', 'other', 'bundle'
     )),
     CONSTRAINT chk_expenses_amount CHECK (amount >= 0)
 );
 
-CREATE INDEX idx_expenses_trip       ON expenses(trip_id);
-CREATE INDEX idx_expenses_category   ON expenses(category);
-CREATE INDEX idx_expenses_date       ON expenses(date);
-CREATE INDEX idx_expenses_added_by   ON expenses(added_by);
-CREATE INDEX idx_expenses_is_deleted ON expenses(is_deleted);
+CREATE INDEX idx_expenses_trip     ON expenses(trip_id);
+CREATE INDEX idx_expenses_category ON expenses(category);
+CREATE INDEX idx_expenses_date     ON expenses(date);
+CREATE INDEX idx_expenses_added_by ON expenses(added_by);
 
 -- ============================================
--- 8. DESTINATION_NOTES TABLE
+-- 8. EXPENSE_SUB_ITEMS TABLE (optional breakdown for bundle expenses)
+-- ============================================
+CREATE TABLE expense_sub_items (
+    sub_item_id BIGSERIAL PRIMARY KEY,
+    expense_id  BIGINT         NOT NULL,
+    description VARCHAR(255)   NOT NULL,
+    amount      DECIMAL(12, 2) NOT NULL,
+    category    VARCHAR(50),
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (expense_id) REFERENCES expenses(expense_id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_sub_items_expense ON expense_sub_items(expense_id);
+
+-- ============================================
+-- 9. PACKING_ITEMS TABLE
+-- ============================================
+CREATE TABLE packing_items (
+    item_id    BIGSERIAL PRIMARY KEY,
+    trip_id    BIGINT       NOT NULL,
+    added_by   BIGINT,
+    label      VARCHAR(255) NOT NULL,
+    category   VARCHAR(50),
+    is_checked BOOLEAN      DEFAULT false,
+    created_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (trip_id)  REFERENCES trips(trip_id)  ON DELETE CASCADE,
+    FOREIGN KEY (added_by) REFERENCES users(user_id)  ON DELETE SET NULL
+);
+
+CREATE INDEX idx_packing_trip ON packing_items(trip_id);
+
+-- ============================================
+-- 10. TRIP_ACTIVITIES TABLE
+-- ============================================
+CREATE TABLE trip_activities (
+    activity_id BIGSERIAL PRIMARY KEY,
+    trip_id     BIGINT       NOT NULL,
+    user_id     BIGINT,
+    actor_name  VARCHAR(100),
+    action_type VARCHAR(50)  NOT NULL,
+    description TEXT         NOT NULL,
+    created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (trip_id) REFERENCES trips(trip_id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL
+);
+
+CREATE INDEX idx_activities_trip ON trip_activities(trip_id);
+CREATE INDEX idx_activities_created ON trip_activities(created_at DESC);
+
+-- ============================================
+-- 11. ITINERARY_ITEMS TABLE
+-- ============================================
+CREATE TABLE itinerary_items (
+    item_id     BIGSERIAL PRIMARY KEY,
+    trip_id     BIGINT       NOT NULL,
+    item_date   DATE         NOT NULL,
+    start_time  TIME,
+    end_time    TIME,
+    title       VARCHAR(255) NOT NULL,
+    description TEXT,
+    location    VARCHAR(255),
+    category    VARCHAR(50),
+    sort_order  INTEGER      DEFAULT 0,
+    created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (trip_id) REFERENCES trips(trip_id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_itinerary_trip ON itinerary_items(trip_id);
+CREATE INDEX idx_itinerary_date ON itinerary_items(item_date);
+
+-- ============================================
+-- 12. DESTINATION_NOTES TABLE
 -- ============================================
 CREATE TABLE destination_notes (
     note_id     BIGSERIAL PRIMARY KEY,
@@ -214,7 +281,6 @@ CREATE TABLE destination_notes (
     info_key    VARCHAR(50),
     title       VARCHAR(255),
     content     TEXT         NOT NULL,
-    is_deleted  BOOLEAN      DEFAULT false,
     created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
 
@@ -222,10 +288,9 @@ CREATE TABLE destination_notes (
     CONSTRAINT chk_dn_type CHECK (note_type IN ('quick_info', 'custom'))
 );
 
-CREATE INDEX idx_dn_trip       ON destination_notes(trip_id);
-CREATE INDEX idx_dn_type       ON destination_notes(note_type);
-CREATE INDEX idx_dn_key        ON destination_notes(info_key);
-CREATE INDEX idx_dn_is_deleted ON destination_notes(is_deleted);
+CREATE INDEX idx_dn_trip ON destination_notes(trip_id);
+CREATE INDEX idx_dn_type ON destination_notes(note_type);
+CREATE INDEX idx_dn_key  ON destination_notes(info_key);
 
 -- ============================================
 -- 9. BUDGET_ALERTS TABLE
@@ -237,7 +302,6 @@ CREATE TABLE budget_alerts (
     alert_type   VARCHAR(50) NOT NULL,
     is_dismissed BOOLEAN     DEFAULT false,
     dismissed_at TIMESTAMP,
-    is_deleted   BOOLEAN     DEFAULT false,
     created_at   TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
     updated_at   TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
 
@@ -245,9 +309,8 @@ CREATE TABLE budget_alerts (
     FOREIGN KEY (trip_id) REFERENCES trips(trip_id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_ba_user       ON budget_alerts(user_id);
-CREATE INDEX idx_ba_trip       ON budget_alerts(trip_id);
-CREATE INDEX idx_ba_is_deleted ON budget_alerts(is_deleted);
+CREATE INDEX idx_ba_user ON budget_alerts(user_id);
+CREATE INDEX idx_ba_trip ON budget_alerts(trip_id);
 
 -- ============================================
 -- TRIGGERS
@@ -262,7 +325,7 @@ BEGIN
         SET spent_amount = (
             SELECT COALESCE(SUM(amount), 0)
             FROM expenses
-            WHERE trip_id = OLD.trip_id AND is_deleted = false
+            WHERE trip_id = OLD.trip_id
         ), updated_at = CURRENT_TIMESTAMP
         WHERE trip_id = OLD.trip_id;
         RETURN OLD;
@@ -271,7 +334,7 @@ BEGIN
         SET spent_amount = (
             SELECT COALESCE(SUM(amount), 0)
             FROM expenses
-            WHERE trip_id = NEW.trip_id AND is_deleted = false
+            WHERE trip_id = NEW.trip_id
         ), updated_at = CURRENT_TIMESTAMP
         WHERE trip_id = NEW.trip_id;
         RETURN NEW;
@@ -297,7 +360,7 @@ BEGIN
             SET spent_amount = (
                 SELECT COALESCE(SUM(amount), 0)
                 FROM expenses
-                WHERE trip_id = OLD.trip_id AND added_by = OLD.added_by AND is_deleted = false
+                WHERE trip_id = OLD.trip_id AND added_by = OLD.added_by
             ), updated_at = CURRENT_TIMESTAMP
             WHERE trip_id = OLD.trip_id AND user_id = OLD.added_by;
             RETURN OLD;
@@ -306,7 +369,7 @@ BEGIN
             SET spent_amount = (
                 SELECT COALESCE(SUM(amount), 0)
                 FROM expenses
-                WHERE trip_id = NEW.trip_id AND added_by = NEW.added_by AND is_deleted = false
+                WHERE trip_id = NEW.trip_id AND added_by = NEW.added_by
             ), updated_at = CURRENT_TIMESTAMP
             WHERE trip_id = NEW.trip_id AND user_id = NEW.added_by;
             RETURN NEW;
@@ -338,3 +401,85 @@ CREATE TRIGGER trg_expenses_updated_at          BEFORE UPDATE ON expenses       
 CREATE TRIGGER trg_dn_updated_at                BEFORE UPDATE ON destination_notes FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER trg_ba_updated_at                BEFORE UPDATE ON budget_alerts     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER trg_refresh_tokens_updated_at    BEFORE UPDATE ON refresh_tokens    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================
+-- LIVE DB MIGRATION: Drop is_deleted columns
+-- Run these against your existing Neon DB
+-- (schema above is for fresh installs only)
+-- ============================================
+-- ALTER TABLE users             DROP COLUMN IF EXISTS is_deleted;
+-- ALTER TABLE trip_members      DROP COLUMN IF EXISTS is_deleted;
+-- ALTER TABLE trip_member_budgets DROP COLUMN IF EXISTS is_deleted;
+-- ALTER TABLE expenses          DROP COLUMN IF EXISTS is_deleted;
+-- ALTER TABLE destination_notes DROP COLUMN IF EXISTS is_deleted;
+-- ALTER TABLE budget_alerts     DROP COLUMN IF EXISTS is_deleted;
+-- DROP INDEX IF EXISTS idx_users_is_deleted;
+-- DROP INDEX IF EXISTS idx_trip_members_is_deleted;
+-- DROP INDEX IF EXISTS idx_tmb_is_deleted;
+-- DROP INDEX IF EXISTS idx_expenses_is_deleted;
+-- DROP INDEX IF EXISTS idx_dn_is_deleted;
+-- DROP INDEX IF EXISTS idx_ba_is_deleted;
+
+-- LIVE DB MIGRATION: New tables for new features
+-- Run these once against your Neon DB:
+--
+-- CREATE TABLE expense_sub_items (
+--     sub_item_id BIGSERIAL PRIMARY KEY,
+--     expense_id  BIGINT NOT NULL,
+--     description VARCHAR(255) NOT NULL,
+--     amount      DECIMAL(12,2) NOT NULL,
+--     category    VARCHAR(50),
+--     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     FOREIGN KEY (expense_id) REFERENCES expenses(expense_id) ON DELETE CASCADE
+-- );
+-- CREATE INDEX idx_sub_items_expense ON expense_sub_items(expense_id);
+-- ALTER TABLE expenses DROP CONSTRAINT IF EXISTS chk_expenses_category;
+-- ALTER TABLE expenses ADD CONSTRAINT chk_expenses_category CHECK (category IN (
+--     'accommodation','transportation','food','activities','shopping','other','bundle'
+-- ));
+--
+-- CREATE TABLE packing_items (
+--     item_id    BIGSERIAL PRIMARY KEY,
+--     trip_id    BIGINT       NOT NULL,
+--     added_by   BIGINT,
+--     label      VARCHAR(255) NOT NULL,
+--     category   VARCHAR(50),
+--     is_checked BOOLEAN      DEFAULT false,
+--     created_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+--     updated_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+--     FOREIGN KEY (trip_id)  REFERENCES trips(trip_id)  ON DELETE CASCADE,
+--     FOREIGN KEY (added_by) REFERENCES users(user_id)  ON DELETE SET NULL
+-- );
+-- CREATE INDEX idx_packing_trip ON packing_items(trip_id);
+--
+-- CREATE TABLE trip_activities (
+--     activity_id BIGSERIAL PRIMARY KEY,
+--     trip_id     BIGINT       NOT NULL,
+--     user_id     BIGINT,
+--     actor_name  VARCHAR(100),
+--     action_type VARCHAR(50)  NOT NULL,
+--     description TEXT         NOT NULL,
+--     created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+--     FOREIGN KEY (trip_id) REFERENCES trips(trip_id) ON DELETE CASCADE,
+--     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL
+-- );
+-- CREATE INDEX idx_activities_trip    ON trip_activities(trip_id);
+-- CREATE INDEX idx_activities_created ON trip_activities(created_at DESC);
+--
+-- CREATE TABLE itinerary_items (
+--     item_id     BIGSERIAL PRIMARY KEY,
+--     trip_id     BIGINT       NOT NULL,
+--     item_date   DATE         NOT NULL,
+--     start_time  TIME,
+--     end_time    TIME,
+--     title       VARCHAR(255) NOT NULL,
+--     description TEXT,
+--     location    VARCHAR(255),
+--     category    VARCHAR(50),
+--     sort_order  INTEGER      DEFAULT 0,
+--     created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+--     updated_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+--     FOREIGN KEY (trip_id) REFERENCES trips(trip_id) ON DELETE CASCADE
+-- );
+-- CREATE INDEX idx_itinerary_trip ON itinerary_items(trip_id);
+-- CREATE INDEX idx_itinerary_date ON itinerary_items(item_date);

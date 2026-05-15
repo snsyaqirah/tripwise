@@ -9,13 +9,14 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class ExpenseResponse {
-    
+
     private Long id;
     private Long tripId;
     private Long paidBy;
@@ -26,8 +27,20 @@ public class ExpenseResponse {
     private Expense.ExpenseCategory category;
     private LocalDate expenseDate;
     private String notes;
+    private List<SubItemDto> subItems;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SubItemDto {
+        private Long id;
+        private String description;
+        private BigDecimal amount;
+        private Expense.ExpenseCategory category;
+    }
     
     @Data
     @Builder

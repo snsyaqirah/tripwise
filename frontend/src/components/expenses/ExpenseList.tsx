@@ -68,19 +68,10 @@ export function ExpenseList({ expenses, onEdit, onDelete }: ExpenseListProps) {
                   {expense.description}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {format(new Date(expense.date), 'MMM d, yyyy')}
+                  {format(new Date(expense.expenseDate), 'MMM d, yyyy')}
                 </TableCell>
                 <TableCell className="text-right font-medium">
-                  <div>
-                    {currencySymbol}
-                    {expense.amount.toLocaleString()}
-                  </div>
-                  {expense.originalCurrency !== expense.currency && (
-                    <div className="text-xs text-muted-foreground">
-                      ({getCurrencySymbol(expense.originalCurrency)}
-                      {expense.originalAmount.toLocaleString()})
-                    </div>
-                  )}
+                  {currencySymbol}{expense.amount.toLocaleString()}
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

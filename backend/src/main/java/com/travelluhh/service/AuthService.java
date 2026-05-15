@@ -117,10 +117,6 @@ public class AuthService {
             throw new BadCredentialsException("Email not verified. Please complete signup first.");
         }
 
-        if (Boolean.TRUE.equals(user.getIsDeleted())) {
-            throw new BadCredentialsException("Account is disabled.");
-        }
-
         if (user.getPasswordHash() == null ||
                 !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new BadCredentialsException("Invalid email or password.");

@@ -2,22 +2,17 @@ import { Trip, Expense } from '@/types';
 import { format } from 'date-fns';
 import { getCountryByCode, getCurrencySymbol, expenseCategories } from '@/data/countries';
 
-/**
- * Export expenses to CSV format
- */
 export function exportExpensesToCSV(expenses: Expense[], tripName: string): void {
-  const headers = ['Date', 'Category', 'Description', 'Amount', 'Currency', 'Original Amount', 'Original Currency'];
-  
+  const headers = ['Date', 'Category', 'Description', 'Amount', 'Currency'];
+
   const rows = expenses.map((expense) => {
     const category = expenseCategories.find(c => c.value === expense.category)?.label || expense.category;
     return [
-      format(new Date(expense.date), 'yyyy-MM-dd'),
+      format(new Date(expense.expenseDate), 'yyyy-MM-dd'),
       category,
       `"${expense.description.replace(/"/g, '""')}"`,
       expense.amount.toFixed(2),
       expense.currency,
-      expense.originalAmount.toFixed(2),
-      expense.originalCurrency,
     ].join(',');
   });
 
@@ -25,23 +20,21 @@ export function exportExpensesToCSV(expenses: Expense[], tripName: string): void
   downloadFile(csvContent, `${tripName.replace(/\s+/g, '_')}_expenses.csv`, 'text/csv');
 }
 
-/**
- * Export trip summary to CSV format
- */
 export function exportTripToCSV(trip: Trip, expenses: Expense[]): void {
   const country = getCountryByCode(trip.destinationCountry);
-  const currencySymbol = getCurrencySymbol(trip.favoriteCurrency);
-  
-  // Trip summary section
+  const currencySymbol = getCurrencySymbol(trip.currency);
+  const totalSpent = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
+  const remaining = trip.budget - totalSpent;
+
   const tripSummary = [
     ['Trip Summary'],
     ['Name', trip.name],
     ['Destination', country?.name || trip.destinationCountry],
     ['Start Date', format(new Date(trip.startDate), 'yyyy-MM-dd')],
     ['End Date', format(new Date(trip.endDate), 'yyyy-MM-dd')],
-    ['Total Budget', `${currencySymbol}${trip.totalBudget}`],
-    ['Total Spent', `${currencySymbol}${trip.spentAmount}`],
-    ['Remaining', `${currencySymbol}${trip.remainingBudget}`],
+    ['Total Budget', `${currencySymbol}${trip.budget}`],
+    ['Total Spent', `${currencySymbol}${totalSpent.toFixed(2)}`],
+    ['Remaining', `${currencySymbol}${remaining.toFixed(2)}`],
     [''],
     ['Expenses'],
     ['Date', 'Category', 'Description', 'Amount', 'Currency'],
@@ -50,7 +43,7 @@ export function exportTripToCSV(trip: Trip, expenses: Expense[]): void {
   const expenseRows = expenses.map((expense) => {
     const category = expenseCategories.find(c => c.value === expense.category)?.label || expense.category;
     return [
-      format(new Date(expense.date), 'yyyy-MM-dd'),
+      format(new Date(expense.expenseDate), 'yyyy-MM-dd'),
       category,
       `"${expense.description.replace(/"/g, '""')}"`,
       expense.amount.toFixed(2),
@@ -65,12 +58,9 @@ export function exportTripToCSV(trip: Trip, expenses: Expense[]): void {
   downloadFile(csvContent, `${trip.name.replace(/\s+/g, '_')}_report.csv`, 'text/csv');
 }
 
-/**
- * Export all trips to CSV format
- */
 export function exportAllTripsToCSV(trips: Trip[]): void {
-  const headers = ['Name', 'Destination', 'Start Date', 'End Date', 'Budget', 'Spent', 'Remaining', 'Currency'];
-  
+  const headers = ['Name', 'Destination', 'Start Date', 'End Date', 'Budget', 'Currency'];
+
   const rows = trips.map((trip) => {
     const country = getCountryByCode(trip.destinationCountry);
     return [
@@ -78,10 +68,8 @@ export function exportAllTripsToCSV(trips: Trip[]): void {
       country?.name || trip.destinationCountry,
       format(new Date(trip.startDate), 'yyyy-MM-dd'),
       format(new Date(trip.endDate), 'yyyy-MM-dd'),
-      trip.totalBudget.toFixed(2),
-      trip.spentAmount.toFixed(2),
-      trip.remainingBudget.toFixed(2),
-      trip.favoriteCurrency,
+      trip.budget.toFixed(2),
+      trip.currency,
     ].join(',');
   });
 
@@ -89,20 +77,16 @@ export function exportAllTripsToCSV(trips: Trip[]): void {
   downloadFile(csvContent, 'all_trips.csv', 'text/csv');
 }
 
-/**
- * Generate PDF-ready HTML content for a trip
- * Note: For actual PDF generation, consider using libraries like jsPDF or html2pdf
- */
 export function generateTripPDFContent(trip: Trip, expenses: Expense[]): string {
   const country = getCountryByCode(trip.destinationCountry);
-  const currencySymbol = getCurrencySymbol(trip.favoriteCurrency);
-  
+  const currencySymbol = getCurrencySymbol(trip.currency);
+  const totalSpent = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
+  const remaining = trip.budget - totalSpent;
+
   const categoryTotals = expenses.reduce((acc, e) => {
-    acc[e.category] = (acc[e.category] || 0) + e.amount;
+    acc[e.category] = (acc[e.category] || 0) + Number(e.amount);
     return acc;
   }, {} as Record<string, number>);
-
-  const totalSpent = expenses.reduce((sum, e) => sum + e.amount, 0);
 
   return `
     <html>
@@ -125,10 +109,10 @@ export function generateTripPDFContent(trip: Trip, expenses: Expense[]): string 
       <body>
         <h1>${trip.name}</h1>
         <p>${country?.name} • ${format(new Date(trip.startDate), 'MMM d, yyyy')} - ${format(new Date(trip.endDate), 'MMM d, yyyy')}</p>
-        
+
         <div class="summary">
           <div class="stat">
-            <div class="stat-value">${currencySymbol}${trip.totalBudget.toLocaleString()}</div>
+            <div class="stat-value">${currencySymbol}${Number(trip.budget).toLocaleString()}</div>
             <div class="stat-label">Total Budget</div>
           </div>
           <div class="stat">
@@ -136,7 +120,7 @@ export function generateTripPDFContent(trip: Trip, expenses: Expense[]): string 
             <div class="stat-label">Total Spent</div>
           </div>
           <div class="stat">
-            <div class="stat-value">${currencySymbol}${(trip.totalBudget - totalSpent).toLocaleString()}</div>
+            <div class="stat-value">${currencySymbol}${remaining.toLocaleString()}</div>
             <div class="stat-label">Remaining</div>
           </div>
         </div>
@@ -164,10 +148,10 @@ export function generateTripPDFContent(trip: Trip, expenses: Expense[]): string 
               const catInfo = expenseCategories.find(c => c.value === expense.category);
               return `
                 <tr>
-                  <td>${format(new Date(expense.date), 'MMM d, yyyy')}</td>
+                  <td>${format(new Date(expense.expenseDate), 'MMM d, yyyy')}</td>
                   <td>${catInfo?.icon} ${catInfo?.label}</td>
                   <td>${expense.description}</td>
-                  <td>${currencySymbol}${expense.amount.toLocaleString()}</td>
+                  <td>${currencySymbol}${Number(expense.amount).toLocaleString()}</td>
                 </tr>
               `;
             }).join('')}
@@ -178,22 +162,21 @@ export function generateTripPDFContent(trip: Trip, expenses: Expense[]): string 
   `;
 }
 
-/**
- * Print trip report (opens print dialog with PDF content)
- */
 export function printTripReport(trip: Trip, expenses: Expense[]): void {
   const content = generateTripPDFContent(trip, expenses);
-  const printWindow = window.open('', '_blank');
+  const blob = new Blob([content], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const printWindow = window.open(url, '_blank');
   if (printWindow) {
-    printWindow.document.write(content);
-    printWindow.document.close();
-    printWindow.print();
+    printWindow.addEventListener('load', () => {
+      printWindow.print();
+      URL.revokeObjectURL(url);
+    });
+  } else {
+    downloadFile(content, `${trip.name.replace(/\s+/g, '_')}_report.html`, 'text/html');
   }
 }
 
-/**
- * Helper to download a file
- */
 function downloadFile(content: string, filename: string, mimeType: string): void {
   const blob = new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);

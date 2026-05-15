@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Expense, ExpenseCategory } from '@/types';
 import { expenseCategories, getCurrencySymbol } from '@/data/countries';
 import { Button } from '@/components/ui/button';
@@ -11,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface ExpenseListWithTotalProps {
@@ -22,8 +23,18 @@ interface ExpenseListWithTotalProps {
 }
 
 export function ExpenseListWithTotal({ expenses, currency, onEdit, onDelete }: ExpenseListWithTotalProps) {
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
   const getCategoryInfo = (category: ExpenseCategory) => {
     return expenseCategories.find((c) => c.value === category);
+  };
+
+  const toggleExpand = (id: string) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
   };
 
   const currencySymbol = getCurrencySymbol(currency);
@@ -56,58 +67,76 @@ export function ExpenseListWithTotal({ expenses, currency, onEdit, onDelete }: E
             const expenseCurrencySymbol = getCurrencySymbol(expense.currency);
 
             return (
-              <TableRow key={expense.id} className="group">
-                <TableCell>
-                  <Badge
-                    variant="secondary"
-                    className="font-normal"
-                    style={{
-                      backgroundColor: `${categoryInfo?.color}15`,
-                      color: categoryInfo?.color,
-                    }}
-                  >
-                    {categoryInfo?.icon} {categoryInfo?.label}
-                  </Badge>
-                </TableCell>
-                <TableCell className="max-w-[200px] truncate">
-                  {expense.description}
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {format(new Date(expense.date), 'MMM d, yyyy')}
-                </TableCell>
-                <TableCell className="text-right font-medium">
-                  <div>
-                    {expenseCurrencySymbol}
-                    {expense.amount.toLocaleString()}
-                  </div>
-                  {expense.originalCurrency !== expense.currency && (
-                    <div className="text-xs text-muted-foreground">
-                      ({getCurrencySymbol(expense.originalCurrency)}
-                      {expense.originalAmount.toLocaleString()})
+              <>
+                <TableRow key={expense.id} className="group">
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      {expense.category === 'bundle' && expense.subItems && expense.subItems.length > 0 && (
+                        <button
+                          onClick={() => toggleExpand(expense.id)}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          {expandedIds.has(expense.id)
+                            ? <ChevronDown className="h-3 w-3" />
+                            : <ChevronRight className="h-3 w-3" />}
+                        </button>
+                      )}
+                      <Badge
+                        variant="secondary"
+                        className="font-normal"
+                        style={{
+                          backgroundColor: `${categoryInfo?.color}15`,
+                          color: categoryInfo?.color,
+                        }}
+                      >
+                        {categoryInfo?.icon} {categoryInfo?.label}
+                      </Badge>
                     </div>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => onEdit(expense)}
-                      className="h-8 w-8"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => onDelete(expense.id)}
-                      className="h-8 w-8 text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
+                  </TableCell>
+                  <TableCell className="max-w-[200px] truncate">
+                    {expense.description}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {format(new Date(expense.expenseDate), 'MMM d, yyyy')}
+                  </TableCell>
+                  <TableCell className="text-right font-medium">
+                    {expenseCurrencySymbol}{expense.amount.toLocaleString()}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button variant="ghost" size="icon" onClick={() => onEdit(expense)} className="h-8 w-8">
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onDelete(expense.id)}
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+                {expense.category === 'bundle' && expandedIds.has(expense.id) && expense.subItems?.map((item, idx) => {
+                  const subCatInfo = expenseCategories.find(c => c.value === item.category);
+                  return (
+                    <TableRow key={`${expense.id}-sub-${idx}`} className="bg-muted/20">
+                      <TableCell className="pl-8">
+                        {subCatInfo && (
+                          <span className="text-xs text-muted-foreground">{subCatInfo.icon} {subCatInfo.label}</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground pl-2">{item.description}</TableCell>
+                      <TableCell />
+                      <TableCell className="text-right text-sm text-muted-foreground">
+                        {expenseCurrencySymbol}{Number(item.amount).toLocaleString()}
+                      </TableCell>
+                      <TableCell />
+                    </TableRow>
+                  );
+                })}
+              </>
             );
           })}
         </TableBody>

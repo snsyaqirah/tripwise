@@ -23,7 +23,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import {
   Share2,
-  Link,
   Copy,
   Check,
   Users,
@@ -71,9 +70,7 @@ export function TripSharing({
   const [inviteRole, setInviteRole] = useState<'editor' | 'viewer'>('viewer');
   const [copied, setCopied] = useState(false);
 
-  // Mock public URL
-  const publicUrl = `https://travelluhh.app/shared/${tripId}`;
-  const collaborationUrl = `https://travelluhh.app/trips/${tripId}?invite=abc123`;
+  const publicUrl = `${window.location.origin}/trips/${tripId}`;
 
   const handleCopyLink = async (url: string) => {
     try {
@@ -127,11 +124,6 @@ export function TripSharing({
     });
   };
 
-  // Mock collaborators for demo
-  const mockCollaborators: Collaborator[] = collaborators.length > 0 ? collaborators : [
-    { id: '1', name: 'Alex Traveler', email: 'alex@example.com', role: 'owner' },
-    { id: '2', name: 'Sarah Explorer', email: 'sarah@example.com', role: 'editor' },
-  ];
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -252,10 +244,10 @@ export function TripSharing({
             <div className="space-y-2">
               <Label className="text-sm font-medium flex items-center gap-2">
                 <Users className="h-4 w-4" />
-                Collaborators ({mockCollaborators.length})
+                Collaborators ({collaborators.length})
               </Label>
               <div className="max-h-48 overflow-y-auto space-y-2">
-                {mockCollaborators.map((collaborator) => (
+                {collaborators.map((collaborator) => (
                   <div
                     key={collaborator.id}
                     className="flex items-center justify-between p-2 rounded-lg bg-muted/50"
@@ -298,26 +290,6 @@ export function TripSharing({
             </div>
           </div>
 
-          {/* Collaboration Link */}
-          <div className="pt-2">
-            <Label className="text-sm text-muted-foreground">
-              Collaboration invite link
-            </Label>
-            <div className="flex gap-2 mt-1">
-              <Input
-                value={collaborationUrl}
-                readOnly
-                className="font-mono text-sm"
-              />
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleCopyLink(collaborationUrl)}
-              >
-                <Link className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
         </div>
       </DialogContent>
     </Dialog>

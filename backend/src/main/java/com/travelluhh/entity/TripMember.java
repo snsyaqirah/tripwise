@@ -40,10 +40,6 @@ public class TripMember {
     @Builder.Default
     private MemberRole role = MemberRole.viewer;
 
-    @Column(name = "is_deleted")
-    @Builder.Default
-    private Boolean isDeleted = false;
-
     @Column(name = "joined_at")
     private LocalDateTime joinedAt;
 

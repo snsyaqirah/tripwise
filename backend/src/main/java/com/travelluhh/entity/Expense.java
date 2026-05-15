@@ -63,10 +63,6 @@ public class Expense {
     @Column(nullable = false, length = 50)
     private ExpenseCategory category;
 
-    @Column(name = "is_deleted")
-    @Builder.Default
-    private Boolean isDeleted = false;
-
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -90,6 +86,7 @@ public class Expense {
         food,
         activities,
         shopping,
-        other
+        other,
+        bundle
     }
 }

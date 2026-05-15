@@ -65,7 +65,6 @@ public class TripService {
                 .trip(trip)
                 .userId(userId)
                 .role(TripMember.MemberRole.owner)
-                .isDeleted(false)
                 .build();
         
         tripMemberRepository.save(ownerMember);
@@ -193,7 +192,6 @@ public class TripService {
                             .email(memberUser != null ? memberUser.getEmail() : null)
                             .avatar(memberUser != null ? memberUser.getAvatar() : null)
                             .role(member.getRole().name())
-                            .isDeleted(member.getIsDeleted())
                             .joinedAt(member.getJoinedAt())
                             .build();
                 })

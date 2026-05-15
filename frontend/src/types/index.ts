@@ -111,7 +111,15 @@ export type ExpenseCategory =
   | 'food'
   | 'activities'
   | 'shopping'
+  | 'bundle'
   | 'other';
+
+export interface ExpenseSubItem {
+  id: string;
+  description: string;
+  amount: number;
+  category?: ExpenseCategory;
+}
 
 export interface Expense {
   id: string;
@@ -129,8 +137,15 @@ export interface Expense {
   category: ExpenseCategory;
   expenseDate: string;
   notes?: string;
+  subItems?: ExpenseSubItem[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface CreateSubItemInput {
+  description: string;
+  amount: number;
+  category?: ExpenseCategory;
 }
 
 export interface CreateExpenseInput {
@@ -140,6 +155,7 @@ export interface CreateExpenseInput {
   currency: string;
   date: string;
   description: string;
+  subItems?: CreateSubItemInput[];
 }
 
 export interface UpdateExpenseInput extends Partial<Omit<CreateExpenseInput, 'tripId'>> {
@@ -182,8 +198,6 @@ export interface ApiResponse<T> {
   success: boolean;
 }
 
-export interface PaginatedResponse<T> {
- / Destination Notes types
 export interface DestinationNote {
   id: string;
   tripId: string;
@@ -207,15 +221,3 @@ export interface BudgetAlert {
   createdAt: string;
 }
 
-/*
- * BONUS / UPGRADE NOTES:
- * - Add CarbonFootprint type for environmental tracking
-}
-
-/*
- * BONUS / UPGRADE NOTES:
- * - Add CarbonFootprint type for environmental tracking
- * - Add DestinationNotes type for local advice
- * - Add BudgetAlert type for category-specific alerts
- * - Add ExportOptions type for CSV/PDF export configuration
- */

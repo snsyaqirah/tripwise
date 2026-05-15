@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Expense, ExpenseCategory } from '@/types';
-import { expenseService, CreateExpenseRequest } from '@/services/expenseService';
+import { Expense, ExpenseCategory, CreateExpenseInput } from '@/types';
+import { expenseService } from '@/services/expenseService';
 
 export function useExpenses(tripId?: string) {
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -31,11 +31,19 @@ export function useExpenses(tripId?: string) {
     }
   }, [tripId, fetchExpenses]);
 
-  const createExpense = useCallback(async (input: CreateExpenseRequest) => {
+  const createExpense = useCallback(async (input: CreateExpenseInput) => {
     setIsLoading(true);
     setError(null);
     try {
-      const newExpense = await expenseService.createExpense(input);
+      const newExpense = await expenseService.createExpense({
+        tripId: Number(input.tripId),
+        description: input.description,
+        amount: input.amount,
+        currency: input.currency,
+        category: input.category,
+        expenseDate: input.date,
+        subItems: input.subItems,
+      });
       setExpenses((prev) => [newExpense, ...prev]);
       return newExpense;
     } catch (err: any) {
@@ -107,6 +115,7 @@ export function useExpenses(tripId?: string) {
     searchExpenses,
     getTotalByCategory,
     getTotalSpent,
+    updateExpense: null as null,
   };
 }
 

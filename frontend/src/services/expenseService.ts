@@ -1,14 +1,21 @@
 import { api } from '@/lib/axios';
 import { Expense } from '@/types';
 
+export interface CreateSubItemRequest {
+  description: string;
+  amount: number;
+  category?: string;
+}
+
 export interface CreateExpenseRequest {
   tripId: number;
   description: string;
   amount: number;
   currency: string;
-  category: 'accommodation' | 'food' | 'transportation' | 'activities' | 'shopping' | 'other';
+  category: string;
   expenseDate: string;
   notes?: string;
+  subItems?: CreateSubItemRequest[];
 }
 
 export const expenseService = {

@@ -85,6 +85,7 @@ export const expenseCategories = [
   { value: 'food', label: 'Food & Dining', icon: '🍽️', color: '#EA580C' },
   { value: 'activities', label: 'Activities', icon: '🎯', color: '#16A34A' },
   { value: 'shopping', label: 'Shopping', icon: '🛍️', color: '#DB2777' },
+  { value: 'bundle', label: 'Package / Bundle', icon: '🎁', color: '#7C3AED' },
   { value: 'other', label: 'Other', icon: '📦', color: '#6B7280' },
 ];
 

@@ -60,7 +60,6 @@ public class TripResponse {
         private String email;
         private String avatar;
         private String role;
-        private Boolean isDeleted;
         private LocalDateTime joinedAt;
     }
 }

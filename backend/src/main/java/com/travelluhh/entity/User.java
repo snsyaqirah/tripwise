@@ -59,10 +59,6 @@ public class User implements UserDetails {
     @Builder.Default
     private Boolean onboardingCompleted = false;
 
-    @Column(name = "is_deleted")
-    @Builder.Default
-    private Boolean isDeleted = false;
-
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -106,10 +102,9 @@ public class User implements UserDetails {
     @Override
     public boolean isCredentialsNonExpired() { return true; }
 
-    /** Only fully-verified, non-deleted accounts can log in. */
     @Override
     public boolean isEnabled() {
-        return Boolean.TRUE.equals(emailVerified) && !Boolean.TRUE.equals(isDeleted);
+        return Boolean.TRUE.equals(emailVerified);
     }
 
     public enum AuthProvider {

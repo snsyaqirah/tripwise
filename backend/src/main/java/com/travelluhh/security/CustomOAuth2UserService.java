@@ -60,7 +60,6 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                 .authProvider(User.AuthProvider.google)
                 .emailVerified(true)
                 .onboardingCompleted(false)
-                .isDeleted(false)
                 .build();
     }
 }
