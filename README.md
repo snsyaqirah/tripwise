@@ -1,10 +1,10 @@
-# TripWise - Travel Planning & Budget Management App
+# TravelLuhh - Travel Planning & Budget Management App
 
 A full-stack travel planning and budget management application that helps you organize trips, track expenses, manage budgets, and collaborate with other travelers.
 
 ## Overview
 
-TripWise is a comprehensive travel expense tracking system that allows users to:
+TravelLuhh is a comprehensive travel expense tracking system that allows users to:
 - Create and manage trips with multi-currency support
 - Track expenses with detailed categorization
 - Collaborate with other travelers using role-based permissions (Owner/Editor/Viewer)
@@ -14,7 +14,7 @@ TripWise is a comprehensive travel expense tracking system that allows users to:
 ## Project Structure
 
 ```
-tripwise/
+travelluhh/
 ├── frontend/              # React + TypeScript frontend
 │   ├── src/
 │   │   ├── components/   # Reusable UI components
@@ -26,7 +26,7 @@ tripwise/
 │   └── package.json
 │
 ├── backend/              # Spring Boot REST API
-│   ├── src/main/java/com/tripwise/
+│   ├── src/main/java/com/travelluhh/
 │   │   ├── controller/  # REST controllers
 │   │   ├── service/     # Business logic
 │   │   ├── repository/  # Data access layer
@@ -55,8 +55,8 @@ tripwise/
 
 ```bash
 # Clone the repository
-git clone https://github.com/snsyaqirah/tripwise.git
-cd tripwise
+git clone https://github.com/snsyaqirah/travelluhh.git
+cd travelluhh
 
 # Start backend + database with Docker
 docker-compose up -d
@@ -108,8 +108,8 @@ Create a PostgreSQL database and update `backend/src/main/resources/application.
 ```yaml
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/tripwise
-    username: tripwise_user
+    url: jdbc:postgresql://localhost:5432/travelluhh
+    username: travelluhh_user
     password: your_password
 ```
 
@@ -218,9 +218,9 @@ cd backend
 ```l
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/tripwise
-    username: tripwise_user
-    password: tripwise_password
+    url: jdbc:postgresql://localhost:5432/travelluhh
+    username: travelluhh_user
+    password: travelluhh_password
   
 jwt:
   secret: your-secret-key-here
@@ -261,7 +261,7 @@ This project is open source and available under the MIT License.
 
 ## Links
 
-- **Repository**: https://github.com/snsyaqirah/tripwise
+- **Repository**: https://github.com/snsyaqirah/travelluhh
 - **Live Demo**: Coming soon
 
 ## Author
@@ -375,5 +375,5 @@ This project is part of the Lovable platform.
 
 ## 🔗 Links
 
-- **Repository**: https://github.com/snsyaqirah/tripwise
+- **Repository**: https://github.com/snsyaqirah/travelluhh
 - **Lovable Project**: [Your Lovable Project URL]

@@ -77,15 +77,15 @@ export const authService = {
   // ── Storage helpers ───────────────────────────────────────────────────────
 
   saveSession(response: AuthResponse) {
-    localStorage.setItem('tripwise_token', response.accessToken);
-    localStorage.setItem('tripwise_refresh_token', response.refreshToken);
-    localStorage.setItem('tripwise_user', JSON.stringify(response.user));
+    localStorage.setItem('travelluhh_token', response.accessToken);
+    localStorage.setItem('travelluhh_refresh_token', response.refreshToken);
+    localStorage.setItem('travelluhh_user', JSON.stringify(response.user));
   },
 
   clearSession() {
-    localStorage.removeItem('tripwise_token');
-    localStorage.removeItem('tripwise_refresh_token');
-    localStorage.removeItem('tripwise_user');
-    localStorage.removeItem('tripwise_onboarding_completed');
+    localStorage.removeItem('travelluhh_token');
+    localStorage.removeItem('travelluhh_refresh_token');
+    localStorage.removeItem('travelluhh_user');
+    localStorage.removeItem('travelluhh_onboarding_completed');
   },
 };

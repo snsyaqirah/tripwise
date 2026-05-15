@@ -11,7 +11,7 @@ export const api: AxiosInstance = axios.create({
 // Request interceptor - attach access token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('tripwise_token');
+    const token = localStorage.getItem('travelluhh_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -39,11 +39,11 @@ api.interceptors.response.use(
     const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
 
     if (error.response?.status === 401 && !originalRequest._retry) {
-      const refreshToken = localStorage.getItem('tripwise_refresh_token');
+      const refreshToken = localStorage.getItem('travelluhh_refresh_token');
 
       if (!refreshToken) {
         // No refresh token at all — force logout
-        localStorage.removeItem('tripwise_token');
+        localStorage.removeItem('travelluhh_token');
         window.location.href = '/login';
         return Promise.reject(error);
       }
@@ -69,7 +69,7 @@ api.interceptors.response.use(
         );
 
         const newToken = response.data.accessToken;
-        localStorage.setItem('tripwise_token', newToken);
+        localStorage.setItem('travelluhh_token', newToken);
         api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
         (originalRequest.headers as Record<string, string>).Authorization = `Bearer ${newToken}`;
 
@@ -77,9 +77,9 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
-        localStorage.removeItem('tripwise_token');
-        localStorage.removeItem('tripwise_refresh_token');
-        localStorage.removeItem('tripwise_user');
+        localStorage.removeItem('travelluhh_token');
+        localStorage.removeItem('travelluhh_refresh_token');
+        localStorage.removeItem('travelluhh_user');
         window.location.href = '/login';
         return Promise.reject(refreshError);
       } finally {

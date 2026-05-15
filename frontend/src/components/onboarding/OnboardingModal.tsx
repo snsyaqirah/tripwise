@@ -83,7 +83,7 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
       >
         <DialogHeader>
           <DialogTitle className="font-display text-xl">
-            Welcome to TripWise! 🌍
+            Welcome to TravelLuhh! 🌍
           </DialogTitle>
           <DialogDescription>
             Let's personalize your experience. This only takes a moment.

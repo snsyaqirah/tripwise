@@ -53,7 +53,7 @@ export default function Landing() {
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                 <Compass className="h-5 w-5" />
               </div>
-              <span className="font-display text-xl font-bold">TripWise</span>
+              <span className="font-display text-xl font-bold">TravelLuhh</span>
             </Link>
             <div className="flex items-center gap-3">
               {isAuthenticated ? (
@@ -88,7 +88,7 @@ export default function Landing() {
             <span className="text-primary">Travel Better.</span>
           </h1>
           <p className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto">
-            TripWise helps you organize your trips, track expenses, and stay on budget
+            TravelLuhh helps you organize your trips, track expenses, and stay on budget
             — so you can focus on making memories.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -132,7 +132,7 @@ export default function Landing() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
-              className="text-center p-8 rounded-2xl bg-card border border-border hover:shadow-tripwise transition-shadow"
+              className="text-center p-8 rounded-2xl bg-card border border-border hover:shadow-travelluhh transition-shadow"
             >
               <div className="inline-flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 text-primary mb-5">
                 <feature.icon className="h-7 w-7" />
@@ -156,7 +156,7 @@ export default function Landing() {
             className="text-center mb-12"
           >
             <h2 className="font-display text-3xl font-bold text-foreground">
-              Why Choose TripWise?
+              Why Choose TravelLuhh?
             </h2>
           </motion.div>
 
@@ -190,7 +190,7 @@ export default function Landing() {
             Ready to Plan Your Next Adventure?
           </h2>
           <p className="text-muted-foreground mb-8">
-            Join TripWise today and take control of your travel budget.
+            Join TravelLuhh today and take control of your travel budget.
           </p>
           <Link to={isAuthenticated ? '/trips' : '/register'}>
             <Button size="lg" className="text-base px-10">
@@ -207,10 +207,10 @@ export default function Landing() {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <Compass className="h-5 w-5 text-primary" />
-              <span className="font-display font-semibold">TripWise</span>
+              <span className="font-display font-semibold">TravelLuhh</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} TripWise. All rights reserved.
+              © {new Date().getFullYear()} TravelLuhh. All rights reserved.
             </p>
           </div>
         </div>

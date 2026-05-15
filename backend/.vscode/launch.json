@@ -3,11 +3,11 @@
   "configurations": [
     {
       "type": "java",
-      "name": "Spring Boot-TripWiseApplication",
+      "name": "Spring Boot-TravelLuhhApplication",
       "request": "launch",
       "cwd": "${workspaceFolder}",
-      "mainClass": "com.tripwise.TripWiseApplication",
-      "projectName": "tripwise-backend",
+      "mainClass": "com.travelluhh.TravelLuhhApplication",
+      "projectName": "travelluhh-backend",
       "args": "",
       "envFile": "${workspaceFolder}/.env"
     }

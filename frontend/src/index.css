@@ -4,7 +4,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* TripWise Design System
+/* TripLuhh Design System
    Primary: #004643 (Deep Teal - Trust, Travel)
    Background: #F0EDE5 (Warm Cream - Paper-like)
    Accent: #F9BC60 (Golden - Warmth, Adventure)
@@ -61,12 +61,12 @@
     --sidebar-border: 178 60% 22%;
     --sidebar-ring: 39 92% 67%;
 
-    /* Custom TripWise Variables */
-    --tripwise-cream: 40 25% 92%;
-    --tripwise-teal: 178 100% 14%;
-    --tripwise-gold: 39 92% 67%;
-    --tripwise-sage: 160 20% 75%;
-    --tripwise-warm: 25 30% 85%;
+    /* Custom TripLuhh Variables */
+    --tripluhh-cream: 40 25% 92%;
+    --tripluhh-teal: 178 100% 14%;
+    --tripluhh-gold: 39 92% 67%;
+    --tripluhh-sage: 160 20% 75%;
+    --tripluhh-warm: 25 30% 85%;
   }
 
   .dark {

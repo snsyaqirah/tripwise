@@ -65,12 +65,12 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
-        tripwise: {
-          cream: "hsl(var(--tripwise-cream))",
-          teal: "hsl(var(--tripwise-teal))",
-          gold: "hsl(var(--tripwise-gold))",
-          sage: "hsl(var(--tripwise-sage))",
-          warm: "hsl(var(--tripwise-warm))",
+        travelluhh: {
+          cream: "hsl(var(--travelluhh-cream))",
+          teal: "hsl(var(--travelluhh-teal))",
+          gold: "hsl(var(--travelluhh-gold))",
+          sage: "hsl(var(--travelluhh-sage))",
+          warm: "hsl(var(--travelluhh-warm))",
         },
       },
       borderRadius: {
@@ -108,8 +108,8 @@ export default {
         "scale-in": "scale-in 0.2s ease-out",
       },
       boxShadow: {
-        "tripwise": "0 4px 20px -4px hsl(var(--tripwise-teal) / 0.15)",
-        "tripwise-lg": "0 10px 40px -10px hsl(var(--tripwise-teal) / 0.2)",
+        "travelluhh": "0 4px 20px -4px hsl(var(--travelluhh-teal) / 0.15)",
+        "travelluhh-lg": "0 10px 40px -10px hsl(var(--travelluhh-teal) / 0.2)",
       },
     },
   },

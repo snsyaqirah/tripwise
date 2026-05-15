@@ -37,7 +37,7 @@ export function TripCard({ trip, onEdit, onDelete }: TripCardProps) {
       whileHover={{ y: -4 }}
       transition={{ duration: 0.2 }}
     >
-      <Card className="group overflow-hidden border-border hover:shadow-tripwise-lg transition-all duration-300">
+      <Card className="group overflow-hidden border-border hover:shadow-travelluhh-lg transition-all duration-300">
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <div className="space-y-1">

@@ -131,7 +131,7 @@ export default function Register() {
       const res = await authService.completeSignup(verificationToken, name.trim(), password);
       authService.saveSession(res);
       setUserFromSession(res.user, res.accessToken, res.refreshToken);
-      toast({ title: 'Welcome to TripWise!', description: 'Your account is ready.' });
+      toast({ title: 'Welcome to TravelLuhh!', description: 'Your account is ready.' });
       navigate('/dashboard');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to create account. Please try again.');
@@ -157,7 +157,7 @@ export default function Register() {
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
               <Compass className="h-7 w-7" />
             </div>
-            <span className="font-display text-2xl font-bold text-foreground">TripWise</span>
+            <span className="font-display text-2xl font-bold text-foreground">TravelLuhh</span>
           </Link>
         </div>
 
@@ -188,7 +188,7 @@ export default function Register() {
           ))}
         </div>
 
-        <Card className="border-border shadow-tripwise">
+        <Card className="border-border shadow-travelluhh">
           <AnimatePresence mode="wait">
             {/* ── Step 1: Email ── */}
             {step === 'email' && (

@@ -24,8 +24,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('tripwise_token');
-    const savedUser = localStorage.getItem('tripwise_user');
+    const token = localStorage.getItem('travelluhh_token');
+    const savedUser = localStorage.getItem('travelluhh_user');
 
     if (token && savedUser) {
       try {
@@ -51,9 +51,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   /** Called by OAuthCallback page after Google redirect */
   const setUserFromSession = useCallback(
     (user: User, accessToken: string, refreshToken: string) => {
-      localStorage.setItem('tripwise_token', accessToken);
-      localStorage.setItem('tripwise_refresh_token', refreshToken);
-      localStorage.setItem('tripwise_user', JSON.stringify(user));
+      localStorage.setItem('travelluhh_token', accessToken);
+      localStorage.setItem('travelluhh_refresh_token', refreshToken);
+      localStorage.setItem('travelluhh_user', JSON.stringify(user));
       if (!user.onboardingCompleted) setNeedsOnboarding(true);
       setAuthState({ user, isAuthenticated: true, isLoading: false });
     },
@@ -79,18 +79,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ...updatedUser,
         onboardingCompleted: true,
       };
-      localStorage.setItem('tripwise_user', JSON.stringify(user));
-      localStorage.setItem('tripwise_onboarding_completed', 'true');
+      localStorage.setItem('travelluhh_user', JSON.stringify(user));
+      localStorage.setItem('travelluhh_onboarding_completed', 'true');
       setNeedsOnboarding(false);
       setAuthState((prev) => ({ ...prev, user }));
     } catch {
       // Fallback: update locally
-      localStorage.setItem('tripwise_onboarding_completed', 'true');
+      localStorage.setItem('travelluhh_onboarding_completed', 'true');
       setNeedsOnboarding(false);
       setAuthState((prev) => {
         if (!prev.user) return prev;
         const user = { ...prev.user, ...data, onboardingCompleted: true };
-        localStorage.setItem('tripwise_user', JSON.stringify(user));
+        localStorage.setItem('travelluhh_user', JSON.stringify(user));
         return { ...prev, user };
       });
     }
@@ -99,7 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updateProfile = useCallback(async (data: { name: string; country: string; currency: string }) => {
     const response = await api.put('/users/profile', data);
     const updatedUser = { ...response.data, onboardingCompleted: true };
-    localStorage.setItem('tripwise_user', JSON.stringify(updatedUser));
+    localStorage.setItem('travelluhh_user', JSON.stringify(updatedUser));
     setAuthState((prev) => ({ ...prev, user: updatedUser }));
   }, []);
 

@@ -34,7 +34,7 @@ export function Navbar() {
               <Compass className="h-5 w-5" />
             </div>
             <span className="font-display text-xl font-bold text-foreground">
-              TripWise
+              TravelLuhh
             </span>
           </Link>
 

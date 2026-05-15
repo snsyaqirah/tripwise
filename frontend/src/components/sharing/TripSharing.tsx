@@ -72,8 +72,8 @@ export function TripSharing({
   const [copied, setCopied] = useState(false);
 
   // Mock public URL
-  const publicUrl = `https://tripwise.app/shared/${tripId}`;
-  const collaborationUrl = `https://tripwise.app/trips/${tripId}?invite=abc123`;
+  const publicUrl = `https://travelluhh.app/shared/${tripId}`;
+  const collaborationUrl = `https://travelluhh.app/trips/${tripId}?invite=abc123`;
 
   const handleCopyLink = async (url: string) => {
     try {

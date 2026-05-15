@@ -1,4 +1,4 @@
--- TripWise Database Schema
+-- TravelLuhh Database Schema
 -- PostgreSQL 15+ | Neon Tech
 -- Run this once on a fresh database
 

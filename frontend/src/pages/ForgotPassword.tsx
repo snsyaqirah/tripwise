@@ -127,11 +127,11 @@ export default function ForgotPassword() {
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
               <Compass className="h-7 w-7" />
             </div>
-            <span className="font-display text-2xl font-bold text-foreground">TripWise</span>
+            <span className="font-display text-2xl font-bold text-foreground">TravelLuhh</span>
           </Link>
         </div>
 
-        <Card className="border-border shadow-tripwise">
+        <Card className="border-border shadow-travelluhh">
           <AnimatePresence mode="wait">
 
             {/* ── Email ── */}

@@ -3,7 +3,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: tripwise-backend
+    container_name: travelluhh-backend
     restart: unless-stopped
     ports:
       - "8080:8080"

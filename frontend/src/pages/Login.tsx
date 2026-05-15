@@ -102,12 +102,12 @@ export default function Login() {
               <Compass className="h-7 w-7" />
             </div>
             <span className="font-display text-2xl font-bold text-foreground">
-              TripWise
+              TravelLuhh
             </span>
           </Link>
         </div>
 
-        <Card className="border-border shadow-tripwise">
+        <Card className="border-border shadow-travelluhh">
           <CardHeader className="space-y-1 text-center">
             <CardTitle className="font-display text-2xl">Welcome back</CardTitle>
             <CardDescription>
