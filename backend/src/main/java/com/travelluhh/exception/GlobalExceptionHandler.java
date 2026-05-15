@@ -156,11 +156,9 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleGenericException(
             Exception ex
     ) {
-        // Log the exception for debugging
         ex.printStackTrace();
-        
         return buildErrorResponse(
-                "An unexpected error occurred",
+                ex.getClass().getSimpleName() + ": " + ex.getMessage(),
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 null
         );
